@@ -90,21 +90,24 @@ Toda a documentação do projeto está listada, em ordem de leitura recomendada,
 9. **Índice** — `SPEC_INDEX.md`.
 10. **Tutorial Operacional** — `TUTORIAL.md`.
 
-## 8. Estrutura de Pastas do Repositório (alvo, pós-Sprint 00)
+## 8. Estrutura de Pastas do Repositório (implementada a partir da Sprint 00)
 
 ```
-Pedidos-redes/
+BI-Demanda/
 ├── backend/
 │   ├── app/
 │   │   ├── api/
 │   │   ├── core/
 │   │   ├── domain/
 │   │   ├── infrastructure/
+│   │   │   └── models/      # 19 modelos SQLAlchemy (DICIONARIO_DE_DADOS.md)
 │   │   ├── services/
 │   │   ├── repositories/
 │   │   └── main.py
 │   ├── alembic/
 │   ├── tests/
+│   ├── Dockerfile
+│   ├── .env.example
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
@@ -114,20 +117,74 @@ Pedidos-redes/
 │   │   ├── hooks/
 │   │   └── styles/
 │   ├── public/
+│   ├── Dockerfile
+│   ├── .env.example
 │   └── package.json
-├── docs/            (opcional — os .md também podem permanecer na raiz)
+├── database/         # arquivo SQLite em tempo de execução (não versionado)
+├── imports/          # arquivos de importação armazenados (não versionado)
+├── scripts/          # setup.sh, dev-backend.sh, dev-frontend.sh
+├── tests/            # reservado para testes E2E (Sprint 12)
+├── docs/
+│   └── DECISIONS.md  # inconsistências e decisões registradas por sprint
 ├── .github/
-│   └── workflows/
+│   └── workflows/ci.yml
+├── docker-compose.yml
+├── .env.example
 ├── README.md
 └── ... (demais arquivos .md desta documentação)
 ```
 
-A estrutura definitiva e o detalhamento pasta a pasta estão em `BACKEND.md` (seção de estrutura de diretórios) e `FRONTEND.md` (seção de estrutura de diretórios).
+A estrutura definitiva e o detalhamento pasta a pasta estão em `BACKEND.md` (seção de estrutura de diretórios) e `FRONTEND.md` (seção de estrutura de diretórios). Desvios pontuais introduzidos na Sprint 0 estão documentados em `docs/DECISIONS.md`.
 
-## 9. Como Começar
+## 9. Como Executar Localmente
+
+### Opção A — Docker Compose (um único comando)
+
+```bash
+cp .env.example .env   # ajuste os segredos antes de produção
+docker compose up --build
+```
+
+- Backend: http://localhost:8000 (health em `/api/v1/health`, docs em `/docs`)
+- Frontend: http://localhost:5173
+
+### Opção B — Sem Docker
+
+```bash
+./scripts/setup.sh          # cria venv, instala deps, aplica migrações, npm install
+./scripts/dev-backend.sh    # terminal 1 — http://localhost:8000
+./scripts/dev-frontend.sh   # terminal 2 — http://localhost:5173
+```
+
+Ou manualmente:
+
+```bash
+# Backend
+cd backend
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+cp .env.example .env
+alembic upgrade head
+uvicorn app.main:app --reload
+
+# Frontend (em outro terminal)
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+### Qualidade
+
+```bash
+cd backend && ruff check . && black --check . && mypy app && pytest --cov=app
+cd frontend && npm run lint && npm run format:check && npm run test && npm run build
+```
+
+## 10. Como Começar
 
 O passo a passo completo — criação do repositório, upload da documentação, instalação do Claude Code, execução da Sprint 0 em diante, revisão de PRs, validação de testes, importação de planilhas e publicação — está descrito integralmente em `TUTORIAL.md`.
 
-## 10. Licença e Uso
+## 11. Licença e Uso
 
 Projeto de uso interno / POC. Definição formal de licença de software é uma decisão de negócio a ser tomada antes da publicação como produto SaaS (ver `TUTORIAL.md`, seção 14).

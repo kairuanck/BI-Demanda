@@ -1,0 +1,31 @@
+# Backend (GITHUB.md, seção 8)
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/logs/
+backend/backups/
+
+# Banco de dados e arquivos importados (mantêm apenas o README.md)
+database/*
+!database/README.md
+imports/*
+!imports/README.md
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Variáveis de ambiente
+.env
+.env.production
+!*.env.example
+
+# Diversos
+.DS_Store

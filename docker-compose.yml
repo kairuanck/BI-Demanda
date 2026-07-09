@@ -1,0 +1,36 @@
+# Sobe todo o projeto com um único comando: `docker compose up --build`
+# (ver DEPLOY.md, seção 8, e SPRINT_00.md).
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      LOG_LEVEL: INFO
+      DATABASE_URL: sqlite:////app/database/app.db
+      STORAGE_DIR: /app/imports
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-key-troque-em-producao}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY:-dev-refresh-secret-key-troque-em-producao}
+    volumes:
+      - ./database:/app/database
+      - ./imports:/app/imports
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
