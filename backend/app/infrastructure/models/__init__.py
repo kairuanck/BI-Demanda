@@ -13,6 +13,7 @@ from app.infrastructure.models.checklist_resposta_model import ChecklistResposta
 from app.infrastructure.models.cidade_model import Cidade
 from app.infrastructure.models.cliente_model import Cliente
 from app.infrastructure.models.departamento_model import Departamento
+from app.infrastructure.models.empresa_model import Empresa
 from app.infrastructure.models.faturamento_model import Faturamento
 from app.infrastructure.models.importacao_arquivo_model import ImportacaoArquivo
 from app.infrastructure.models.importacao_erro_model import ImportacaoErro
@@ -34,6 +35,7 @@ __all__ = [
     "Cidade",
     "Cliente",
     "Departamento",
+    "Empresa",
     "Faturamento",
     "ImportacaoArquivo",
     "ImportacaoErro",

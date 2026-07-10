@@ -17,7 +17,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # DATABASE.md, seção 5: a URL real vem de app.core.config, não do alembic.ini.
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+# Uma URL já definida programaticamente (ex.: testes com banco isolado) é respeitada.
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", get_settings().database_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

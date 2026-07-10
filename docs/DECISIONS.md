@@ -68,3 +68,49 @@ Este documento registra, conforme instrução da Sprint 0, as inconsistências e
 1. **Backend — manipuladores globais de exceção** (`app/api/error_handlers.py`): exceções de domínio (`app/domain/excecoes.py`) são traduzidas para o formato padrão de erro de `API.md`, seção 13 (`{"erro": {"codigo", "mensagem", "detalhes"}}`), com mapeamento explícito exceção→(status, código). `RequestValidationError` do FastAPI também foi padronizado para o mesmo envelope (código `VALIDACAO_FALHOU`), substituindo o formato nativo `{"detail": [...]}` — decisão de consistência de contrato; consumidores devem usar sempre o envelope `erro`. Exceções não mapeadas retornam `500 ERRO_INTERNO` genérico e são registradas em nível `CRITICAL` (`LOGS.md`, seção 5, item 4), sem vazar detalhes internos ao cliente.
 2. **Frontend — `ErrorBoundary`** na raiz da aplicação (`main.tsx`), com fallback amigável e botão de recarga; **`ApiError`** tipado em `httpClient.ts`, que interpreta o envelope de erro padrão do backend (com fallback para respostas não-JSON, ex.: erros de proxy).
 3. Testes dos handlers do backend usam uma instância FastAPI isolada com rotas propositalmente falhas, em vez de poluir a aplicação real com rotas de teste.
+
+---
+
+# Sprint 2 — Banco de Dados, ETL e Motor de Importação
+
+## 7. Gap Analysis: entidades pedidas × modelo aprovado
+
+O prompt da Sprint 2 lista 17 entidades. O modelo aprovado (`DICIONARIO_DE_DADOS.md`, implementado na Sprint 0) já cobria 16 delas, com nomenclatura própria. Mapeamento adotado, sem duplicação de tabelas:
+
+| Entidade do prompt | Realização no modelo aprovado |
+|---|---|
+| Empresa | **Nova tabela `empresas`** (única lacuna real) — ver item 8 |
+| Usuário | `usuarios` (existente) |
+| Perfil | Enum `PerfilUsuario` em `usuarios.perfil` — RBAC de 4 perfis fixos (`PERMISSOES.md`); tabela própria não foi criada para não conflitar com a decisão aprovada |
+| Promotor | `promotores` (existente) |
+| Departamento | `departamentos` (existente) |
+| Laboratório | `laboratorios` (existente) |
+| Cliente | `clientes` (existente) |
+| Cidade | `cidades` (existente) |
+| UF | `ufs` (existente) |
+| Carteira / CarteiraCliente | `carteiras` — o vínculo Promotor×Cliente com vigência já É o item de carteira; não há tabela-cabeçalho separada no modelo aprovado |
+| Região | Atributo `ufs.regiao` (dimensão embutida na UF, conforme `DICIONARIO_DE_DADOS.md`, seção 8) |
+| Importação | `importacoes` (existente) |
+| ArquivoImportado | `importacao_arquivos` (existente) |
+| Venda | `faturamentos` — nomenclatura aprovada do fato de venda/faturamento mensal |
+| Checklist | `checklists` + `checklist_perguntas` + `checklist_respostas` (existentes) |
+| Visita | `visitas` (existente) |
+
+**Tabelas de apoio pedidas:** "auditoria das importações" = `logs_auditoria` (existente, evento `IMPORTACAO`); "logs" = `importacao_erros` (por linha) + log técnico em arquivo (`LOGS.md`) — sem tabela adicional; "versões" = colunas `versao`/`importacao_pai_id` de `importacoes` — o versionamento é intrínseco à cadeia, sem tabela separada.
+
+## 8. UUID / Soft Delete / created_by nas tabelas existentes
+
+O prompt pede UUID, `deleted_at` e `created_by`/`updated_by` em todos os modelos, "sempre que fizer sentido". Decisão: **aplicado integralmente apenas à tabela nova (`empresas`)**. As 19 tabelas existentes mantêm o esquema aprovado (`DICIONARIO_DE_DADOS.md`: PK inteira, `criado_em`/`atualizado_em`, inativação via `ativo`) — reescrever o esquema aprovado violaria as instruções "considere as decisões existentes como aprovadas" e "não reescreva código existente". A introdução de UUID/soft-delete geral pode ser reavaliada como migração aditiva em sprint futura, se o Product Owner decidir.
+
+## 9. Decisões técnicas da Sprint 2
+
+1. **Módulo `etl/` independente** (`backend/etl/`), com camadas `readers/`, `validators/`, `transformers/`, `loaders/`, `hash/`, `logs/`, `arquivos/` e o orquestrador `motor.py`. Os 5 importadores são pares (validador, loader) registrados em `IMPORTADORES` — plugáveis sem alterar o motor (Open/Closed, `BACKEND.md`, seção 3).
+2. **Fluxo físico de arquivos**: `imports/incoming → processed|rejected`, com cópia imutável de todo arquivo aceito em `imports/archive` (nome `{TIPO}_{id}_{hash12}.xlsx`, `HASH.md`, seção 8). Diretórios criados automaticamente; nenhum arquivo é excluído, apenas movido/copiado.
+3. **Tentativas recusadas (duplicidade/arquivo inválido) recebem `versao=0`**, mantendo-as fora da cadeia de versões válidas; `MAX(versao)` para a próxima versão exclui `FALHOU`/`REVERTIDA` (`REGRAS_DE_NEGOCIO.md`, seção 4 + `HASH.md`, seções 3 e 6). A tentativa fica registrada em `importacoes` + `importacao_erros` para auditoria.
+4. **Transacionalidade em duas fases**: o registro da `Importacao` é commitado antes da carga (sobrevive a falhas); a carga de linhas roda em transação única — exceção inesperada faz rollback de todas as linhas e marca `FALHOU` (testado em `test_falha_no_loader_faz_rollback_completo_da_carga`).
+5. **Reimportação de resposta de checklist já existente é rejeitada como erro de linha** (não versionada): a UQ `(visita_id, checklist_pergunta_id)` do `DICIONARIO_DE_DADOS.md`, seção 16, conflita com `REGRAS_DE_NEGOCIO.md`, seção 5.4, item 3 (nova versão de resposta). Prevaleceu o schema aprovado + "nunca sobrescrever"; o versionamento de respostas individuais fica pendente de decisão formal de especificação.
+6. **Datas do pipeline em UTC naive** (`_agora_utc()`), consistentes com as colunas `DateTime` sem timezone do modelo (armazenamento UTC, `DATABASE.md`, seção 3, item 4).
+7. **Endpoints de importação sem autenticação nesta sprint** (restrição explícita do prompt: "não implementar autenticação/permissões"). A exigência de perfil Administrador (`PERMISSOES.md`) será aplicada na sprint de autenticação via `Depends(exige_perfil(...))` — os endpoints já estão isolados atrás de `get_importacao_service` para facilitar isso.
+8. **Reprocessamento** (`POST /importacoes/{id}/reprocessar`) copia o arquivo de `archive/` para `incoming/` e reexecuta o pipeline como importação independente — o controle de duplicidade continua valendo (reprocessar uma importação CONCLUIDA idêntica é recusado; útil para FALHOU, cujo hash é ignorado na detecção).
+9. **Exclusão física permitida apenas para `status=PENDENTE`** (importação que nunca processou dados), preservando o princípio de histórico imutável para todos os demais status.
+10. **Seed de UFs** (`app/infrastructure/seeds/seed_ufs.py`) entregue nesta sprint — era pendência da Sprint 01 documental e é pré-requisito dos importadores (REF-001).
