@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.error_handlers import registrar_error_handlers
 from app.api.middlewares.logging_middleware import LoggingMiddleware
 from app.api.routers.health_router import router as health_router
 from app.core.config import get_settings
@@ -27,5 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(LoggingMiddleware)
+
+registrar_error_handlers(app)
 
 app.include_router(health_router, prefix="/api/v1")

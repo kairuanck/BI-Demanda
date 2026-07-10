@@ -53,3 +53,18 @@ Este documento registra, conforme instrução da Sprint 0, as inconsistências e
 
 1. **`docker compose up` não pôde ser executado de ponta a ponta neste ambiente de implementação** — o daemon Docker não está disponível/iniciável no sandbox usado nesta sessão (sem privilégios para `dockerd`). Foi validado o que era possível sem o daemon: `docker compose config` (parse e resolução de variáveis bem-sucedidos, sem erros de sintaxe/configuração) e revisão manual dos `Dockerfile`s (padrões multi-stage padrão de mercado para Python/FastAPI e Node/Vite+nginx). **Recomenda-se que o usuário execute `docker compose up --build` em um ambiente com Docker disponível antes de considerar este critério de aceite 100% validado.**
 2. Nenhuma outra pendência funcional identificada — todos os demais critérios de aceite (backend local, frontend local, testes, lint, build) foram executados e validados nesta sessão.
+
+---
+
+# Sprint 1 — Fundação do Produto
+
+## 5. Sobreposição entre o prompt da Sprint 1 e a Sprint 0 já entregue
+
+- **Inconsistência:** o prompt da Sprint 1 solicita, quase integralmente, o mesmo escopo já entregue e validado na Sprint 0 (estrutura backend/frontend, SQLite/SQLAlchemy, Alembic, Docker/Compose, GitHub Actions, `.env`, `/health`, página inicial, layout base, logging, testes básicos).
+- **Resolução adotada:** nenhum item já entregue foi reimplementado ou reescrito. A Sprint 1 foi executada como *gap analysis* + entrega do delta real, que era um único item ausente: **tratamento global de erros** (backend e frontend). O detalhamento está em `SPRINT_1_REPORT.md`.
+
+## 6. Decisões técnicas da Sprint 1
+
+1. **Backend — manipuladores globais de exceção** (`app/api/error_handlers.py`): exceções de domínio (`app/domain/excecoes.py`) são traduzidas para o formato padrão de erro de `API.md`, seção 13 (`{"erro": {"codigo", "mensagem", "detalhes"}}`), com mapeamento explícito exceção→(status, código). `RequestValidationError` do FastAPI também foi padronizado para o mesmo envelope (código `VALIDACAO_FALHOU`), substituindo o formato nativo `{"detail": [...]}` — decisão de consistência de contrato; consumidores devem usar sempre o envelope `erro`. Exceções não mapeadas retornam `500 ERRO_INTERNO` genérico e são registradas em nível `CRITICAL` (`LOGS.md`, seção 5, item 4), sem vazar detalhes internos ao cliente.
+2. **Frontend — `ErrorBoundary`** na raiz da aplicação (`main.tsx`), com fallback amigável e botão de recarga; **`ApiError`** tipado em `httpClient.ts`, que interpreta o envelope de erro padrão do backend (com fallback para respostas não-JSON, ex.: erros de proxy).
+3. Testes dos handlers do backend usam uma instância FastAPI isolada com rotas propositalmente falhas, em vez de poluir a aplicação real com rotas de teste.
