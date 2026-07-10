@@ -6,7 +6,8 @@ repositório. Os arquivos são gravados diretamente em `fluxo.incoming`.
 
 from __future__ import annotations
 
-from datetime import date
+import shutil
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,14 +15,39 @@ from openpyxl import Workbook
 
 from etl.arquivos import FluxoArquivos
 
+# O OpenPyXL grava `created`/`modified` em docProps/core.xml. `created` pode
+# ser fixado, mas `modified` é sobrescrito com datetime.now() dentro do
+# próprio writer (openpyxl/writer/excel.py), independentemente do valor
+# atribuído antes de workbook.save(). Ou seja: dois arquivos com conteúdo
+# idêntico gerados via criar_xlsx() em segundos diferentes SEMPRE produzem
+# bytes (e hash SHA-256) diferentes — não há como neutralizar isso pela
+# API pública do openpyxl. Fixar `created` aqui é só uma redução parcial de
+# ruído; testes que precisem de hash idêntico devem usar duplicar_arquivo().
+_TIMESTAMP_DETERMINISTICO = datetime(2026, 1, 1, 0, 0, 0)
+
 
 def criar_xlsx(destino: Path, colunas: list[str], linhas: list[list[Any]]) -> Path:
     workbook = Workbook()
+    workbook.properties.created = _TIMESTAMP_DETERMINISTICO
     aba = workbook.active
     aba.append(colunas)
     for linha in linhas:
         aba.append(linha)
     workbook.save(destino)
+    return destino
+
+
+def duplicar_arquivo(origem: Path, novo_nome: str) -> Path:
+    """Copia um arquivo já gerado byte a byte, com outro nome.
+
+    Usado para simular o cenário real de "o mesmo arquivo reenviado sob
+    outro nome" (HASH.md, seção 3), garantindo hash SHA-256 idêntico —
+    diferente de gerar duas planilhas equivalentes via OpenPyXL, cujo
+    `modified` interno as torna sempre distintas em bytes.
+    """
+
+    destino = origem.parent / novo_nome
+    shutil.copy2(origem, destino)
     return destino
 
 

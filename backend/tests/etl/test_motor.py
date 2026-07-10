@@ -11,7 +11,7 @@ from app.infrastructure.models import Cliente, ImportacaoErro, LogAuditoria, Usu
 from etl.arquivos import FluxoArquivos
 from etl.motor import IMPORTADORES, MotorImportacao
 from etl.validators.clientes import validar_clientes
-from tests.etl.fixtures_xlsx import criar_xlsx, xlsx_clientes
+from tests.etl.fixtures_xlsx import criar_xlsx, duplicar_arquivo, xlsx_clientes
 
 
 def test_importacao_em_banco_vazio_recebe_versao_1(
@@ -35,12 +35,14 @@ def test_importacao_em_banco_vazio_recebe_versao_1(
 def test_arquivo_identico_e_recusado_como_duplicado(
     motor: MotorImportacao, fluxo: FluxoArquivos, usuario_admin: Usuario, ufs: None, sessao: Session
 ) -> None:
-    primeira = motor.importar(
-        xlsx_clientes(fluxo, "a.xlsx"), TipoArquivoImportacao.CLIENTES, usuario_admin.id
-    )
-    segunda = motor.importar(
-        xlsx_clientes(fluxo, "b.xlsx"), TipoArquivoImportacao.CLIENTES, usuario_admin.id
-    )
+    # duplicar_arquivo garante bytes idênticos (e portanto hash idêntico),
+    # diferente de gerar duas planilhas equivalentes via OpenPyXL (ver
+    # fixtures_xlsx.py — o writer sempre varia o `modified` interno).
+    arquivo_a = xlsx_clientes(fluxo, "a.xlsx")
+    arquivo_b = duplicar_arquivo(arquivo_a, "b.xlsx")
+
+    primeira = motor.importar(arquivo_a, TipoArquivoImportacao.CLIENTES, usuario_admin.id)
+    segunda = motor.importar(arquivo_b, TipoArquivoImportacao.CLIENTES, usuario_admin.id)
 
     assert primeira.status == StatusImportacao.CONCLUIDA
     assert segunda.status == StatusImportacao.FALHOU
