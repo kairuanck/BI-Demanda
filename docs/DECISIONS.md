@@ -124,3 +124,20 @@ O prompt pede UUID, `deleted_at` e `created_by`/`updated_by` em todos os modelos
 **Correção:** adicionado `duplicar_arquivo()` em `fixtures_xlsx.py`, que copia o arquivo já gerado byte a byte para um novo nome (`shutil.copy2`), em vez de regenerar via OpenPyXL — fiel ao cenário real de "o mesmo arquivo reenviado sob outro nome" (`HASH.md`, seção 3) e imune a variação de timestamp. `test_arquivo_identico_e_recusado_como_duplicado` foi ajustado para usá-la. Mantido, como melhoria secundária, o `created` fixo em `criar_xlsx()` (reduz ruído, ainda que não elimine sozinho a não determinismo, já documentado no comentário do arquivo).
 
 **Verificação:** reproduzido o bug isoladamente (dois `Workbook()` salvos com >1s de intervalo geram hashes diferentes mesmo com `created` fixo); confirmado que `duplicar_arquivo()` produz hash idêntico independente de tempo decorrido; suíte completa (44 testes) e lint/mypy re-executados localmente após a correção.
+
+---
+
+# Sprint 3 — Integração dos Dados Reais
+
+## 11. Decisões técnicas da Fase 1 (engenharia reversa)
+
+1. **Dados reais nunca são versionados.** O repositório é público; os arquivos da operação (com CNPJs, nomes de clientes e funcionários) permanecem exclusivamente no ambiente de execução (`imports/`, ignorado pelo git). `docs/DATA_PROFILING.md` documenta apenas estrutura, contagens e exemplos sanitizados.
+2. **Deduplicação por hash de conteúdo, além do hash binário.** O profiling provou que o mesmo relatório foi exportado 34× (SB Promotor) e 26× (Checklist) com bytes diferentes (metadados internos do xlsx variam a cada export), mas conteúdo de células idêntico. O SHA-256 binário (HASH.md) continua sendo a identidade do arquivo físico; um **hash de conteúdo** (SHA-256 sobre os valores das células, aba a aba, linha a linha) passa a ser calculado e usado como segundo critério de duplicidade. Novo campo em `importacoes`.
+3. **Leitura adaptativa por nome de coluna normalizado**, nunca por posição fixa, com tolerância a colunas ausentes/extras por arquivo — exigido pelo schema drift real (WeCheck 26→31 colunas entre meses; coluna BRINDE presente só em Março/Abril no Faturamento).
+4. **Wide → Long antes da persistência** (exigência da sprint, confirmada pela realidade): Faturamento (matriz Cliente×Marca → 1 linha por cliente×marca×mês), Checklists (42 colunas → 1 linha por visita×pergunta respondida), WeCheck (colunas de pergunta → linhas resposta). Nenhum dado analítico é armazenado em wide.
+5. **Preservação integral**: toda linha/coluna dos arquivos de origem é preservada — colunas sem mapeamento de domínio vão para um campo JSON `dados_brutos` na tabela de staging correspondente, nunca descartadas.
+6. **Strategy Pattern para origens de visita** (exigência da sprint): `SBPromotorImporter` e `WeCheckImporter` implementam o mesmo contrato e alimentam o mesmo modelo de domínio de visitas; particularidades de cada sistema ficam confinadas ao respectivo conector em `etl/`.
+
+## 12. Perguntas de negócio abertas (bloqueiam Fases 2–5)
+
+Registradas em 12/07/2026; implementação de importadores aguarda resposta do Product Owner (regra da sprint: nunca assumir regras de negócio). Lista enviada na conversa da sprint.
