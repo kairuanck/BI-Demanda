@@ -664,6 +664,67 @@ def test_wecheck_reimportacao_e_idempotente_e_tolera_schema_drift(
     assert len(promotoras) == 1
 
 
+def test_wecheck_nome_acentuado_nao_duplica_promotora(
+    motor: MotorImportacao, fluxo: FluxoArquivos, usuario_admin: Usuario, ufs: None, sessao: Session
+) -> None:
+    """Regressão: `func.lower()` do SQLite não dobra maiúsculas acentuadas
+    (ex.: 'Ú' permanece 'Ú'), então comparar via SQL fazia cada visita da
+    mesma promotora com nome acentuado criar um `Promotor` novo. A
+    resolução por nome deve ser feita em Python (`str.casefold`)."""
+
+    linhas = [
+        [
+            "Visita de Trade",
+            "05/01/2026 09:00",
+            "LOJA A",
+            None,
+            "PORTO ALEGRE",
+            "RS",
+            "JÚLIA",
+            None,
+            None,
+            "Ok",
+            "Ok",
+            "Ok",
+        ],
+        [
+            "Visita de Trade",
+            "06/01/2026 10:00",
+            "LOJA B",
+            None,
+            "PORTO ALEGRE",
+            "RS",
+            "JÚLIA",
+            None,
+            None,
+            "Ok",
+            "Ok",
+            "Ok",
+        ],
+        [
+            "Visita de Trade",
+            "07/01/2026 11:00",
+            "LOJA C",
+            None,
+            "PORTO ALEGRE",
+            "RS",
+            "JÚLIA",
+            None,
+            None,
+            "Ok",
+            "Ok",
+            "Ok",
+        ],
+    ]
+    importacao = motor.importar(
+        xlsx_wecheck(fluxo, linhas=linhas), TipoArquivoImportacao.WECHECK, usuario_admin.id
+    )
+    assert importacao.status == StatusImportacao.CONCLUIDA
+
+    promotoras = list(sessao.scalars(select(Promotor).where(Promotor.nome == "JÚLIA")))
+    assert len(promotoras) == 1
+
+
 # --------------------------------------------------------------- Painel Avert
 
 

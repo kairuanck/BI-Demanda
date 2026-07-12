@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.enums import CategoriaComercial, SistemaOrigem, StatusConciliacao, TipoPromotor
@@ -120,13 +120,25 @@ def obter_ou_criar_promotor_por_nome(
     """WeCheck/Painel Avert identificam a promotora apenas pelo nome.
 
     Busca exata case-insensitive (normalização determinística — casamento
-    fuzzy é proibido, docs/DECISIONS.md, 12.4). O tipo só é aplicado na
-    criação: é definição cadastral do PO (12.6), nunca sobrescreve cadastro.
+    fuzzy é proibido, docs/DECISIONS.md, 12.4). Comparação feita em Python
+    (`str.casefold`), não via `func.lower()` do SQL: o `LOWER()` nativo do
+    SQLite só normaliza ASCII e não dobra maiúsculas acentuadas (ex.:
+    "Ú" não vira "ú"), o que faria cada nome acentuado criar um promotor
+    novo a cada chamada. O tipo só é aplicado na criação: é definição
+    cadastral do PO (12.6), nunca sobrescreve cadastro.
     """
 
     nome_normalizado = " ".join(nome.split())
-    promotor = session.scalar(
-        select(Promotor).where(func.lower(Promotor.nome) == nome_normalizado.lower())
+    chave = nome_normalizado.casefold()
+    promotor = next(
+        (
+            candidato
+            for candidato in session.scalars(
+                select(Promotor).where(Promotor.codigo_externo.is_(None))
+            )
+            if candidato.nome.casefold() == chave
+        ),
+        None,
     )
     if promotor is None:
         promotor = Promotor(
