@@ -48,9 +48,9 @@ class VisitaResumoSb(Base):
     cliente_visitas_previstas: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cliente_visitas_realizadas: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cliente_nao_visitas: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    perc_visitas_a_realizar: Mapped[Decimal | None] = mapped_column(Numeric(7, 2), nullable=True)
     perc_visitas_realizadas: Mapped[Decimal | None] = mapped_column(Numeric(7, 2), nullable=True)
     perc_nao_visitas: Mapped[Decimal | None] = mapped_column(Numeric(7, 2), nullable=True)
-    perc_cobertura: Mapped[Decimal | None] = mapped_column(Numeric(7, 2), nullable=True)
     importacao_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("importacoes.id", ondelete="RESTRICT"), nullable=False
     )

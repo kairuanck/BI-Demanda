@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.domain.enums import TipoPromotor
+from app.domain.enums import CategoriaComercial, SistemaOrigem, StatusConciliacao, TipoPromotor
 from app.infrastructure.models import (
     Cidade,
+    ClienteIntegracao,
     Departamento,
     Laboratorio,
     Promotor,
@@ -98,3 +99,80 @@ def obter_ou_criar_vendedor(session: Session, codigo: str, nome: str | None) -> 
         session.add(vendedor)
         session.flush()
     return vendedor
+
+
+def obter_ou_criar_laboratorio_por_nome(
+    session: Session, nome: str, categoria: CategoriaComercial = CategoriaComercial.LABORATORIO
+) -> Laboratorio:
+    """Marcas da matriz real de faturamento não têm código — identidade por nome."""
+
+    laboratorio = session.scalar(select(Laboratorio).where(Laboratorio.nome == nome))
+    if laboratorio is None:
+        laboratorio = Laboratorio(nome=nome, categoria=categoria)
+        session.add(laboratorio)
+        session.flush()
+    return laboratorio
+
+
+def obter_ou_criar_promotor_por_nome(
+    session: Session, nome: str, tipo: TipoPromotor | None
+) -> Promotor:
+    """WeCheck/Painel Avert identificam a promotora apenas pelo nome.
+
+    Busca exata case-insensitive (normalização determinística — casamento
+    fuzzy é proibido, docs/DECISIONS.md, 12.4). O tipo só é aplicado na
+    criação: é definição cadastral do PO (12.6), nunca sobrescreve cadastro.
+    """
+
+    nome_normalizado = " ".join(nome.split())
+    promotor = session.scalar(
+        select(Promotor).where(func.lower(Promotor.nome) == nome_normalizado.lower())
+    )
+    if promotor is None:
+        promotor = Promotor(
+            nome=nome_normalizado,
+            tipo_promotor_id=resolver_tipo_promotor_id(session, tipo),
+        )
+        session.add(promotor)
+        session.flush()
+    return promotor
+
+
+def registrar_integracao_cliente(
+    session: Session,
+    sistema: SistemaOrigem,
+    codigo_origem: str,
+    nome_origem: str | None,
+    importacao_id: str,
+    cliente_id: str | None = None,
+) -> ClienteIntegracao:
+    """Get-or-create do vínculo de identidade externa (docs/DECISIONS.md, 13.4).
+
+    Sem correspondência interna o registro fica PENDENTE — clientes nunca
+    são criados automaticamente (12.4/12.5). Se um vínculo é fornecido e o
+    registro ainda está pendente, ele é promovido a VINCULADO.
+    """
+
+    integracao = session.scalar(
+        select(ClienteIntegracao).where(
+            ClienteIntegracao.sistema_origem == sistema,
+            ClienteIntegracao.codigo_origem == codigo_origem,
+        )
+    )
+    if integracao is None:
+        integracao = ClienteIntegracao(
+            sistema_origem=sistema,
+            codigo_origem=codigo_origem,
+            nome_origem=nome_origem,
+            cliente_id=cliente_id,
+            status=(StatusConciliacao.VINCULADO if cliente_id else StatusConciliacao.PENDENTE),
+            importacao_id=importacao_id,
+        )
+        session.add(integracao)
+        session.flush()
+    elif cliente_id is not None and integracao.status == StatusConciliacao.PENDENTE:
+        integracao.cliente_id = cliente_id
+        integracao.status = StatusConciliacao.VINCULADO
+        integracao.importacao_id = importacao_id
+        session.flush()
+    return integracao

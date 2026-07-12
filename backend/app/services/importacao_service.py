@@ -85,7 +85,9 @@ class ImportacaoService:
             )
             contador += 1
         shutil.copy2(str(origem), str(destino))
-        return self.motor.importar(destino, original.tipo_arquivo, original.usuario_id)
+        return self.motor.importar(
+            destino, original.tipo_arquivo, original.usuario_id, competencia=original.competencia
+        )
 
     def excluir_pendente(self, importacao_id: str) -> None:
         """Exclui apenas importações com status PENDENTE (Sprint 2)."""

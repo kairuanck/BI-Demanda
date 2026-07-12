@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 from app.domain.enums import StatusImportacao, TipoArquivoImportacao
 from app.infrastructure.models import Cliente, ImportacaoErro, LogAuditoria, Usuario
 from etl.arquivos import FluxoArquivos
-from etl.motor import IMPORTADORES, MotorImportacao
+from etl.conectores import ConectorLegado
+from etl.layouts import LAYOUTS
+from etl.motor import CONECTORES, MotorImportacao
 from etl.validators.clientes import validar_clientes
 from tests.etl.fixtures_xlsx import criar_xlsx, duplicar_arquivo, xlsx_clientes
 
@@ -143,7 +145,9 @@ def test_falha_no_loader_faz_rollback_completo_da_carga(
         raise RuntimeError("falha proposital no meio da carga")
 
     monkeypatch.setitem(
-        IMPORTADORES, TipoArquivoImportacao.CLIENTES, (validar_clientes, loader_que_falha)
+        CONECTORES,
+        TipoArquivoImportacao.CLIENTES,
+        ConectorLegado(LAYOUTS[TipoArquivoImportacao.CLIENTES], validar_clientes, loader_que_falha),
     )
 
     importacao = motor.importar(

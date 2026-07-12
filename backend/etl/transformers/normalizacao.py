@@ -90,3 +90,40 @@ def para_hora(valor: Any) -> time | None:
         except ValueError:
             continue
     return None
+
+
+def para_data_hora(valor: Any) -> datetime | None:
+    """Aceita datetime nativo do Excel ou texto DD/MM/AAAA HH:MM(:SS)."""
+
+    if valor is None:
+        return None
+    if isinstance(valor, datetime):
+        return valor
+    if isinstance(valor, date):
+        return datetime(valor.year, valor.month, valor.day)
+    texto = str(valor).strip()
+    for formato in (
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%d/%m/%Y",
+        "%Y-%m-%d",
+    ):
+        try:
+            return datetime.strptime(texto, formato)
+        except ValueError:
+            continue
+    return None
+
+
+def para_percentual(valor: Any) -> Decimal | None:
+    """Converte "100%", "12,5%" ou número em Decimal (valor percentual)."""
+
+    if valor is None:
+        return None
+    if isinstance(valor, str):
+        valor = valor.strip().rstrip("%").strip()
+        if not valor:
+            return None
+    return para_decimal(valor)

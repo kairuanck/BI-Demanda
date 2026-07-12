@@ -100,7 +100,7 @@ def test_consultar_detalhe_e_historico_de_erros(
     erros = client.get(f"/api/v1/importacoes/{importacao.id}/erros")
     assert erros.status_code == 200
     assert erros.json()["total_itens"] == 1
-    assert "UF inexistente" in erros.json()["itens"][0]["mensagem_erro"]
+    assert "UF inválida" in erros.json()["itens"][0]["mensagem_erro"]
 
 
 def test_consultar_importacao_inexistente_retorna_404_padrao(client: TestClient) -> None:

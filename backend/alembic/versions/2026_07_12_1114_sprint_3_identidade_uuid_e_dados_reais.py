@@ -232,9 +232,9 @@ def upgrade() -> None:
         sa.Column("cliente_visitas_previstas", sa.Integer(), nullable=True),
         sa.Column("cliente_visitas_realizadas", sa.Integer(), nullable=True),
         sa.Column("cliente_nao_visitas", sa.Integer(), nullable=True),
+        sa.Column("perc_visitas_a_realizar", sa.Numeric(precision=7, scale=2), nullable=True),
         sa.Column("perc_visitas_realizadas", sa.Numeric(precision=7, scale=2), nullable=True),
         sa.Column("perc_nao_visitas", sa.Numeric(precision=7, scale=2), nullable=True),
-        sa.Column("perc_cobertura", sa.Numeric(precision=7, scale=2), nullable=True),
         sa.Column("importacao_id", sa.String(length=36), nullable=False),
         sa.Column(
             "criado_em",

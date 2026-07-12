@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -28,24 +28,23 @@ from app.infrastructure.models import (
     LogAuditoria,
 )
 from etl.arquivos import FluxoArquivos
-from etl.hash import calcular_sha256_arquivo
-from etl.layouts import LAYOUTS
-from etl.loaders import (
-    carregar_carteira,
-    carregar_checklist,
-    carregar_clientes,
-    carregar_faturamento,
-    carregar_visitas,
+from etl.conectores import (
+    ConectorBaseClientes,
+    ConectorChecklistSb,
+    ConectorFaturamentoMatriz,
+    ConectorLegado,
+    ConectorOrigem,
+    ConectorPainelAvert,
+    ConectorSbProdutos,
+    ConectorSbSupervisor,
+    ConectorWeCheck,
+    ExecucaoImportacao,
 )
+from etl.hash import calcular_hash_conteudo, calcular_sha256_arquivo
+from etl.layouts import LAYOUTS
+from etl.loaders import carregar_visitas
 from etl.logs import obter_logger_etl
-from etl.readers import ler_excel
-from etl.resultado import LINHA_ARQUIVO, ErroLinha, LinhaValida, ResultadoValidacao
-from etl.validators import criar_contexto_validacao
-from etl.validators.carteira import validar_carteira
-from etl.validators.checklist import validar_checklist
-from etl.validators.clientes import validar_clientes
-from etl.validators.contexto import ContextoValidacao
-from etl.validators.faturamento import validar_faturamento
+from etl.resultado import LINHA_ARQUIVO, ErroLinha
 from etl.validators.visitas import validar_visitas
 
 TAMANHO_MAXIMO_BYTES = 20 * 1024 * 1024  # VALIDADOR.md, EST-004
@@ -60,25 +59,20 @@ def _agora_utc() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
-class FuncaoValidacao(Protocol):
-    def __call__(
-        self, linhas: list[tuple[int, dict[str, Any]]], contexto: ContextoValidacao
-    ) -> ResultadoValidacao: ...
-
-
-class FuncaoCarga(Protocol):
-    def __call__(
-        self, session: Session, linhas: list[LinhaValida], importacao_id: str, usuario_id: str
-    ) -> int: ...
-
-
-# Importadores independentes: (validador, loader) por tipo de arquivo.
-IMPORTADORES: dict[TipoArquivoImportacao, tuple[FuncaoValidacao, FuncaoCarga]] = {
-    TipoArquivoImportacao.CLIENTES: (validar_clientes, carregar_clientes),
-    TipoArquivoImportacao.CARTEIRA: (validar_carteira, carregar_carteira),
-    TipoArquivoImportacao.FATURAMENTO: (validar_faturamento, carregar_faturamento),
-    TipoArquivoImportacao.CHECKLIST: (validar_checklist, carregar_checklist),
-    TipoArquivoImportacao.VISITAS: (validar_visitas, carregar_visitas),
+# Strategy por tipo de arquivo (docs/DECISIONS.md, 11.6): cada origem real
+# tem seu conector; VISITAS mantém o layout documental legado (sem fonte
+# real correspondente) via adaptador.
+CONECTORES: dict[TipoArquivoImportacao, ConectorOrigem] = {
+    TipoArquivoImportacao.CLIENTES: ConectorBaseClientes(),
+    TipoArquivoImportacao.CARTEIRA: ConectorSbSupervisor(),
+    TipoArquivoImportacao.FATURAMENTO: ConectorFaturamentoMatriz(),
+    TipoArquivoImportacao.CHECKLIST: ConectorChecklistSb(),
+    TipoArquivoImportacao.SB_PRODUTOS: ConectorSbProdutos(),
+    TipoArquivoImportacao.WECHECK: ConectorWeCheck(),
+    TipoArquivoImportacao.PAINEL_AVERT: ConectorPainelAvert(),
+    TipoArquivoImportacao.VISITAS: ConectorLegado(
+        LAYOUTS[TipoArquivoImportacao.VISITAS], validar_visitas, carregar_visitas
+    ),
 }
 
 
@@ -87,8 +81,19 @@ class MotorImportacao:
     session: Session
     fluxo: FluxoArquivos
 
-    def importar(self, caminho: Path, tipo: TipoArquivoImportacao, usuario_id: str) -> Importacao:
-        """Executa o pipeline completo para um arquivo em `incoming/`."""
+    def importar(
+        self,
+        caminho: Path,
+        tipo: TipoArquivoImportacao,
+        usuario_id: str,
+        competencia: date | None = None,
+    ) -> Importacao:
+        """Executa o pipeline completo para um arquivo em `incoming/`.
+
+        `competencia` é o mês de referência dos dados (1º dia do mês) —
+        obrigatório para fontes mensais que não o declaram no arquivo
+        (ex.: relatório Supervisor do SB; docs/DECISIONS.md, 12.2).
+        """
 
         inicio = time.monotonic()
         logger.info("Importação iniciada: tipo=%s arquivo=%s", tipo.value, caminho.name)
@@ -96,9 +101,15 @@ class MotorImportacao:
         erro_estrutural = self._validar_arquivo_fisico(caminho)
         hash_sha256 = calcular_sha256_arquivo(caminho)
         tamanho = caminho.stat().st_size
+        hash_conteudo = self._hash_conteudo_seguro(caminho) if erro_estrutural is None else None
 
-        # Etapa 5 — classificação de duplicidade (HASH.md, seção 3)
+        # Etapa 5 — classificação de duplicidade (HASH.md, seção 3):
+        # 1º pelos bytes; 2º pelo conteúdo lógico das células — os exports
+        # reais chegam em dezenas de cópias byte a byte distintas porém
+        # idênticas em conteúdo (docs/DECISIONS.md, 11.2).
         duplicada_de = self._buscar_duplicada(tipo, hash_sha256)
+        if duplicada_de is None and hash_conteudo is not None:
+            duplicada_de = self._buscar_duplicada_por_conteudo(tipo, hash_conteudo)
         if duplicada_de is not None:
             return self._registrar_recusa(
                 caminho,
@@ -108,6 +119,7 @@ class MotorImportacao:
                 tamanho,
                 f"Arquivo duplicado: idêntico à importação #{duplicada_de.id} "
                 f"(versão {duplicada_de.versao}, de {duplicada_de.criado_em:%d/%m/%Y}).",
+                hash_conteudo=hash_conteudo,
             )
         if erro_estrutural is not None:
             return self._registrar_recusa(
@@ -119,7 +131,9 @@ class MotorImportacao:
             tipo_arquivo=tipo,
             nome_arquivo_original=caminho.name,
             hash_sha256=hash_sha256,
+            hash_conteudo=hash_conteudo,
             tamanho_bytes=tamanho,
+            competencia=competencia,
             usuario_id=usuario_id,
             status=StatusImportacao.PROCESSANDO,
             versao=versao,
@@ -199,6 +213,28 @@ class MotorImportacao:
             )
         )
 
+    def _buscar_duplicada_por_conteudo(
+        self, tipo: TipoArquivoImportacao, hash_conteudo: str
+    ) -> Importacao | None:
+        """Duplicidade lógica: mesmo conteúdo de células em bytes diferentes."""
+
+        return self.session.scalar(
+            select(Importacao).where(
+                Importacao.tipo_arquivo == tipo,
+                Importacao.hash_conteudo == hash_conteudo,
+                Importacao.status.not_in([StatusImportacao.FALHOU, StatusImportacao.REVERTIDA]),
+            )
+        )
+
+    @staticmethod
+    def _hash_conteudo_seguro(caminho: Path) -> str | None:
+        """Hash de conteúdo; arquivo ilegível vira erro estrutural adiante."""
+
+        try:
+            return calcular_hash_conteudo(caminho)
+        except Exception:  # noqa: BLE001 - xlsx corrompido é tratado pelo conector
+            return None
+
     def _proxima_versao(self, tipo: TipoArquivoImportacao) -> tuple[int, str | None]:
         """REGRAS_DE_NEGOCIO.md, seção 4: MAX(versão) exclui FALHOU/REVERTIDA."""
 
@@ -224,32 +260,25 @@ class MotorImportacao:
         importacao: Importacao,
         usuario_id: str,
     ) -> Importacao:
-        validar, carregar = IMPORTADORES[tipo]
+        conector = CONECTORES[tipo]
+        execucao = ExecucaoImportacao(session=self.session, importacao=importacao)
+        resultado = conector.processar(caminho, execucao)
 
-        leitura = ler_excel(caminho, LAYOUTS[tipo])
-        if not leitura.valida:
+        if resultado.estrutural_invalido:
+            self.session.rollback()  # descarta qualquer resíduo antes da falha
             importacao.status = StatusImportacao.FALHOU
             importacao.concluido_em = _agora_utc()
-            self._registrar_erros(importacao.id, leitura.erros_estruturais)
+            self._registrar_erros(importacao.id, resultado.erros)
             self._auditar(importacao, usuario_id)
             self.session.commit()
             return importacao
 
-        contexto = criar_contexto_validacao(self.session)
-        resultado = validar(leitura.linhas, contexto)
-
-        persistidas = 0
-        if resultado.linhas_validas:
-            persistidas = carregar(
-                self.session, resultado.linhas_validas, importacao.id, usuario_id
-            )
-
         self._registrar_erros(importacao.id, resultado.erros)
-        importacao.total_linhas = len(leitura.linhas)
-        importacao.linhas_validas = persistidas
-        importacao.linhas_invalidas = importacao.total_linhas - persistidas
+        importacao.total_linhas = resultado.total_linhas
+        importacao.linhas_validas = resultado.persistidas
+        importacao.linhas_invalidas = max(resultado.total_linhas - resultado.persistidas, 0)
         importacao.concluido_em = _agora_utc()
-        if persistidas == 0:
+        if resultado.persistidas == 0:
             importacao.status = StatusImportacao.FALHOU
         elif importacao.linhas_invalidas > 0:
             importacao.status = StatusImportacao.CONCLUIDA_COM_ERROS
@@ -270,6 +299,7 @@ class MotorImportacao:
         hash_sha256: str,
         tamanho: int,
         mensagem: str,
+        hash_conteudo: str | None = None,
     ) -> Importacao:
         """Tentativa recusada antes do processamento (duplicidade/estrutura física).
 
@@ -281,6 +311,7 @@ class MotorImportacao:
             tipo_arquivo=tipo,
             nome_arquivo_original=caminho.name,
             hash_sha256=hash_sha256,
+            hash_conteudo=hash_conteudo,
             tamanho_bytes=tamanho,
             usuario_id=usuario_id,
             status=StatusImportacao.FALHOU,

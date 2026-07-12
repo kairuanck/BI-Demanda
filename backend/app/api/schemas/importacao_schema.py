@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -16,7 +16,9 @@ class ImportacaoResponse(BaseModel):
     tipo_arquivo: TipoArquivoImportacao
     nome_arquivo_original: str
     hash_sha256: str
+    hash_conteudo: str | None
     tamanho_bytes: int
+    competencia: date | None
     usuario_id: str
     status: StatusImportacao
     versao: int
