@@ -10,12 +10,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums import PerfilUsuario
 from app.infrastructure.database import Base
+from app.infrastructure.models.identidade import novo_uuid
 
 
 class Usuario(Base):
     __tablename__ = "usuarios"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
     nome: Mapped[str] = mapped_column(String(150), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -23,11 +24,11 @@ class Usuario(Base):
         SAEnum(PerfilUsuario, native_enum=False, length=20), nullable=False
     )
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    promotor_id: Mapped[int | None] = mapped_column(
-        ForeignKey("promotores.id", ondelete="SET NULL"), unique=True, nullable=True
+    promotor_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("promotores.id", ondelete="SET NULL"), unique=True, nullable=True
     )
-    supervisor_id: Mapped[int | None] = mapped_column(
-        ForeignKey("supervisores.id", ondelete="SET NULL"), unique=True, nullable=True
+    supervisor_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("supervisores.id", ondelete="SET NULL"), unique=True, nullable=True
     )
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     atualizado_em: Mapped[datetime] = mapped_column(

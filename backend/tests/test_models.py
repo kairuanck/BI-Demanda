@@ -1,11 +1,12 @@
-"""Testes de estrutura do banco e relacionamentos (DICIONARIO_DE_DADOS.md)."""
+"""Testes de estrutura do banco e relacionamentos (DICIONARIO_DE_DADOS.md +
+adaptações da Sprint 3 aos dados reais, docs/DECISIONS.md, seção 13)."""
 
 from __future__ import annotations
 
 from datetime import date
 
 import pytest
-from sqlalchemy import inspect
+from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,7 @@ from app.infrastructure.models import (
     Importacao,
     Promotor,
     Supervisor,
+    TipoPromotorCadastro,
     Uf,
     Usuario,
 )
@@ -44,10 +46,17 @@ TABELAS_ESPERADAS = {
     "importacao_arquivos",
     "logs_auditoria",
     "empresas",
+    # Sprint 3 — dados reais
+    "tipos_promotor",
+    "clientes_integracao",
+    "visitas_resumo_sb",
+    "carteiras_avert",
+    "visitas_produtos_sb",
+    "clientes_vendedores",
 }
 
 
-def test_todas_as_20_tabelas_existem_apos_migracao() -> None:
+def test_todas_as_26_tabelas_existem_apos_migracao() -> None:
     inspetor = inspect(engine)
     tabelas_existentes = set(inspetor.get_table_names())
 
@@ -61,6 +70,14 @@ def test_chave_estrangeira_promotor_supervisor_configurada() -> None:
     colunas_fk = {fk["constrained_columns"][0] for fk in fks}
 
     assert "supervisor_id" in colunas_fk
+    assert "tipo_promotor_id" in colunas_fk
+
+
+def test_tipos_promotor_semeados_pela_migracao(sessao: Session) -> None:
+    """O seed cadastral TECNICO/TRADE é aplicado pela própria migração."""
+
+    codigos = set(sessao.scalars(select(TipoPromotorCadastro.codigo)))
+    assert {TipoPromotor.TECNICO.value, TipoPromotor.TRADE.value} <= codigos
 
 
 def test_relacionamento_carteira_exige_cliente_e_promotor_validos(
@@ -79,8 +96,8 @@ def test_relacionamento_carteira_exige_cliente_e_promotor_validos(
     sessao.commit()
 
     vinculo_invalido = Carteira(
-        promotor_id=99999,
-        cliente_id=99999,
+        promotor_id="inexistente-99999",
+        cliente_id="inexistente-99999",
         importacao_id=importacao.id,
         data_inicio_vigencia=date(2026, 1, 1),
         status=StatusCarteira.ATIVA,
@@ -106,10 +123,16 @@ def test_relacionamento_completo_cliente_promotor_carteira(
     supervisor = Supervisor(nome="Sup Rel", codigo_externo="S900")
     sessao.add_all([cliente, supervisor])
     sessao.flush()
+    tipo_tecnico = sessao.scalar(
+        select(TipoPromotorCadastro).where(
+            TipoPromotorCadastro.codigo == TipoPromotor.TECNICO.value
+        )
+    )
+    assert tipo_tecnico is not None
     promotor = Promotor(
         nome="Pro Rel",
         codigo_externo="P900",
-        tipo=TipoPromotor.TECNICO,
+        tipo_promotor_id=tipo_tecnico.id,
         supervisor_id=supervisor.id,
     )
     sessao.add(promotor)
@@ -136,14 +159,25 @@ def test_relacionamento_completo_cliente_promotor_carteira(
     assert sessao.get(Uf, "SP") is not None
 
 
-def test_empresa_possui_uuid_soft_delete_e_auditoria(
+def test_identidade_uuid_interna_em_todas_as_entidades(
     sessao: Session, usuario_admin: Usuario
 ) -> None:
+    """Diretriz Sprint 3: UUID interno como identidade (docs/DECISIONS.md, 13)."""
+
+    empresa = Empresa(nome="Empresa UUID", cnpj="98765432000100")
+    sessao.add(empresa)
+    sessao.commit()
+
+    for entidade in (usuario_admin, empresa):
+        assert isinstance(entidade.id, str) and len(entidade.id) == 36
+
+
+def test_empresa_possui_soft_delete_e_auditoria(sessao: Session, usuario_admin: Usuario) -> None:
     empresa = Empresa(nome="Empresa Teste", cnpj="12345678000199", criado_por=usuario_admin.id)
     sessao.add(empresa)
     sessao.commit()
 
-    assert empresa.uuid and len(empresa.uuid) == 36
+    assert empresa.id and len(empresa.id) == 36
     assert empresa.criado_em is not None
     assert empresa.deletado_em is None
     assert empresa.criado_por == usuario_admin.id

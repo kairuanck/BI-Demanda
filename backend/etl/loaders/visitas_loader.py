@@ -10,7 +10,7 @@ from etl.resultado import LinhaValida
 
 
 def carregar_visitas(
-    session: Session, linhas: list[LinhaValida], importacao_id: int, usuario_id: int
+    session: Session, linhas: list[LinhaValida], importacao_id: str, usuario_id: str
 ) -> int:
     persistidas = 0
     for linha in linhas:

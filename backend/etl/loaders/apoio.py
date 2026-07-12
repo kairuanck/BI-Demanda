@@ -12,6 +12,7 @@ from app.infrastructure.models import (
     Laboratorio,
     Promotor,
     Supervisor,
+    TipoPromotorCadastro,
     Vendedor,
 )
 
@@ -34,25 +35,37 @@ def obter_ou_criar_supervisor(session: Session, codigo: str, nome: str | None) -
     return supervisor
 
 
+def resolver_tipo_promotor_id(session: Session, tipo: TipoPromotor | str | None) -> str | None:
+    """Resolve o código cadastral em `tipos_promotor.id` (docs/DECISIONS.md, seção 13)."""
+
+    if tipo is None:
+        return None
+    codigo = tipo.value if isinstance(tipo, TipoPromotor) else str(tipo)
+    return session.scalar(
+        select(TipoPromotorCadastro.id).where(TipoPromotorCadastro.codigo == codigo)
+    )
+
+
 def obter_ou_criar_promotor(
     session: Session,
     codigo: str,
     nome: str | None,
     tipo: TipoPromotor | None,
-    supervisor_id: int,
+    supervisor_id: str | None,
 ) -> Promotor:
     promotor = session.scalar(select(Promotor).where(Promotor.codigo_externo == codigo))
     if promotor is None:
-        # nome/tipo garantidos pelo validador quando o promotor é inédito
+        # O tipo é cadastral e nunca inferido (docs/DECISIONS.md, seção 12):
+        # sem tipo informado pela fonte, o promotor nasce com tipo pendente.
         promotor = Promotor(
             codigo_externo=codigo,
             nome=nome or codigo,
-            tipo=tipo or TipoPromotor.TRADE,
+            tipo_promotor_id=resolver_tipo_promotor_id(session, tipo),
             supervisor_id=supervisor_id,
         )
         session.add(promotor)
         session.flush()
-    elif promotor.supervisor_id != supervisor_id:
+    elif supervisor_id is not None and promotor.supervisor_id != supervisor_id:
         # Mudança de supervisão é atualização cadastral direta
         # (IMPORTADOR.md, seção 4.2, item 3)
         promotor.supervisor_id = supervisor_id

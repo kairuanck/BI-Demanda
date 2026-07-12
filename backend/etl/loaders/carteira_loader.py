@@ -16,7 +16,7 @@ from etl.loaders.apoio import obter_ou_criar_promotor, obter_ou_criar_supervisor
 from etl.resultado import LinhaValida
 
 
-def _vinculo_vigente(session: Session, cliente_id: int) -> Carteira | None:
+def _vinculo_vigente(session: Session, cliente_id: str) -> Carteira | None:
     return session.scalar(
         select(Carteira).where(
             Carteira.cliente_id == cliente_id,
@@ -27,10 +27,10 @@ def _vinculo_vigente(session: Session, cliente_id: int) -> Carteira | None:
 
 
 def carregar_carteira(
-    session: Session, linhas: list[LinhaValida], importacao_id: int, usuario_id: int
+    session: Session, linhas: list[LinhaValida], importacao_id: str, usuario_id: str
 ) -> int:
     persistidas = 0
-    clientes_no_arquivo: set[int] = set()
+    clientes_no_arquivo: set[str] = set()
     data_referencia_arquivo = None
 
     for linha in linhas:

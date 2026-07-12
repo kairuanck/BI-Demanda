@@ -1,4 +1,9 @@
-"""Tabela `checklist_perguntas` (DICIONARIO_DE_DADOS.md, seção 15)."""
+"""Tabela `checklist_perguntas` (DICIONARIO_DE_DADOS.md, seção 15).
+
+Sprint 3: perguntas também nascem dos cabeçalhos wide dos exports reais
+(Checklist e WeCheck). Nesses casos `obrigatoria` entra como False — a
+fonte não informa obrigatoriedade e ela não pode ser inferida.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domain.enums import TipoRespostaChecklist
 from app.infrastructure.database import Base
+from app.infrastructure.models.identidade import novo_uuid
 
 
 class ChecklistPergunta(Base):
@@ -18,9 +24,9 @@ class ChecklistPergunta(Base):
         UniqueConstraint("checklist_id", "ordem", name="uq_checklist_perguntas_checklist_ordem"),
     )
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    checklist_id: Mapped[int] = mapped_column(
-        ForeignKey("checklists.id", ondelete="CASCADE"), nullable=False
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
+    checklist_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("checklists.id", ondelete="CASCADE"), nullable=False
     )
     ordem: Mapped[int] = mapped_column(Integer, nullable=False)
     enunciado: Mapped[str] = mapped_column(String(500), nullable=False)

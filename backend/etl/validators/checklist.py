@@ -16,20 +16,19 @@ def validar_checklist(
     linhas: list[tuple[int, dict[str, Any]]], contexto: ContextoValidacao
 ) -> ResultadoValidacao:
     resultado = ResultadoValidacao()
-    pares_vistos: set[tuple[int, int]] = set()
+    pares_vistos: set[tuple[str, str]] = set()
 
     for numero, bruto in linhas:
         erros: list[ErroLinha] = []
-        id_visita = para_inteiro(bruto.get("ID_VISITA"))
+        # Identificador opaco da visita (UUID interno) — nunca interpretado
+        # como número (docs/DECISIONS.md, seção 13).
+        id_visita = para_texto(bruto.get("ID_VISITA"))
         ordem = para_inteiro(bruto.get("ORDEM_PERGUNTA"))
         resposta = para_texto(bruto.get("RESPOSTA"))
 
         if id_visita is None:
-            valor = para_texto(bruto.get("ID_VISITA"))
             erros.append(
-                ErroLinha(
-                    numero, f"Valor numérico inválido em ID_VISITA: {valor}.", "ID_VISITA", valor
-                )
+                ErroLinha(numero, "Valor obrigatório ausente em ID_VISITA.", "ID_VISITA", None)
             )
         elif not contexto.visita_existe(id_visita):
             # REF-004

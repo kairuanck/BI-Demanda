@@ -50,10 +50,10 @@ class ImportacaoRepository:
         )
         return PaginaImportacoes(itens=itens, total_itens=total)
 
-    def obter(self, importacao_id: int) -> Importacao | None:
+    def obter(self, importacao_id: str) -> Importacao | None:
         return self.session.get(Importacao, importacao_id)
 
-    def listar_erros(self, importacao_id: int, pagina: int, tamanho_pagina: int) -> PaginaErros:
+    def listar_erros(self, importacao_id: str, pagina: int, tamanho_pagina: int) -> PaginaErros:
         consulta = select(ImportacaoErro).where(ImportacaoErro.importacao_id == importacao_id)
         total = self.session.scalar(select(func.count()).select_from(consulta.subquery())) or 0
         itens = list(
@@ -76,7 +76,7 @@ class ImportacaoRepository:
             )
         )
 
-    def obter_arquivo(self, importacao_id: int) -> ImportacaoArquivo | None:
+    def obter_arquivo(self, importacao_id: str) -> ImportacaoArquivo | None:
         return self.session.scalar(
             select(ImportacaoArquivo).where(ImportacaoArquivo.importacao_id == importacao_id)
         )

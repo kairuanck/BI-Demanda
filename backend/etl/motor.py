@@ -68,7 +68,7 @@ class FuncaoValidacao(Protocol):
 
 class FuncaoCarga(Protocol):
     def __call__(
-        self, session: Session, linhas: list[LinhaValida], importacao_id: int, usuario_id: int
+        self, session: Session, linhas: list[LinhaValida], importacao_id: str, usuario_id: str
     ) -> int: ...
 
 
@@ -87,7 +87,7 @@ class MotorImportacao:
     session: Session
     fluxo: FluxoArquivos
 
-    def importar(self, caminho: Path, tipo: TipoArquivoImportacao, usuario_id: int) -> Importacao:
+    def importar(self, caminho: Path, tipo: TipoArquivoImportacao, usuario_id: str) -> Importacao:
         """Executa o pipeline completo para um arquivo em `incoming/`."""
 
         inicio = time.monotonic()
@@ -199,7 +199,7 @@ class MotorImportacao:
             )
         )
 
-    def _proxima_versao(self, tipo: TipoArquivoImportacao) -> tuple[int, int | None]:
+    def _proxima_versao(self, tipo: TipoArquivoImportacao) -> tuple[int, str | None]:
         """REGRAS_DE_NEGOCIO.md, seção 4: MAX(versão) exclui FALHOU/REVERTIDA."""
 
         anterior = self.session.scalar(
@@ -222,7 +222,7 @@ class MotorImportacao:
         caminho: Path,
         tipo: TipoArquivoImportacao,
         importacao: Importacao,
-        usuario_id: int,
+        usuario_id: str,
     ) -> Importacao:
         validar, carregar = IMPORTADORES[tipo]
 
@@ -266,7 +266,7 @@ class MotorImportacao:
         self,
         caminho: Path,
         tipo: TipoArquivoImportacao,
-        usuario_id: int,
+        usuario_id: str,
         hash_sha256: str,
         tamanho: int,
         mensagem: str,
@@ -302,7 +302,7 @@ class MotorImportacao:
         self.fluxo.mover_para_rejected(caminho)
         return importacao
 
-    def _registrar_erros(self, importacao_id: int, erros: list[ErroLinha]) -> None:
+    def _registrar_erros(self, importacao_id: str, erros: list[ErroLinha]) -> None:
         for erro in erros:
             self.session.add(
                 ImportacaoErro(
@@ -314,7 +314,7 @@ class MotorImportacao:
                 )
             )
 
-    def _auditar(self, importacao: Importacao, usuario_id: int) -> None:
+    def _auditar(self, importacao: Importacao, usuario_id: str) -> None:
         duracao_segundos: float | None = None
         if importacao.iniciado_em and importacao.concluido_em:
             duracao_segundos = (importacao.concluido_em - importacao.iniciado_em).total_seconds()

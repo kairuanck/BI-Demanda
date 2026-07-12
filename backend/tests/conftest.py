@@ -27,6 +27,9 @@ from app.core.config import get_settings  # noqa: E402
 from app.domain.enums import PerfilUsuario  # noqa: E402
 from app.infrastructure.database import Base, SessionLocal, engine  # noqa: E402
 from app.infrastructure.models import Usuario  # noqa: E402
+from app.infrastructure.seeds.seed_tipos_promotor import (  # noqa: E402
+    executar_seed_tipos_promotor,
+)
 from app.infrastructure.seeds.seed_ufs import executar_seed_ufs  # noqa: E402
 from app.main import app as fastapi_app  # noqa: E402
 from etl.arquivos import FluxoArquivos  # noqa: E402
@@ -45,12 +48,27 @@ def _aplicar_migracoes() -> Generator[None, None, None]:
 
 @pytest.fixture(autouse=True)
 def _limpar_banco() -> Generator[None, None, None]:
-    """Isola os testes: apaga todos os dados após cada teste."""
+    """Isola os testes: apaga todos os dados e restaura seeds de migração.
 
+    A limpeza remove também o seed cadastral de `tipos_promotor` aplicado
+    pela migração da Sprint 3; ele é reaplicado para que cada teste veja o
+    banco como uma migração recém-executada.
+    """
+
+    _garantir_seed_tipos_promotor()
     yield
     with engine.begin() as conexao:
         for tabela in reversed(Base.metadata.sorted_tables):
             conexao.execute(tabela.delete())
+    _garantir_seed_tipos_promotor()
+
+
+def _garantir_seed_tipos_promotor() -> None:
+    sessao_seed = SessionLocal()
+    try:
+        executar_seed_tipos_promotor(sessao_seed)
+    finally:
+        sessao_seed.close()
 
 
 @pytest.fixture()

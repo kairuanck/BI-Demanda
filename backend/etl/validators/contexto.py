@@ -18,6 +18,7 @@ from app.infrastructure.models import (
     ChecklistResposta,
     Cliente,
     Promotor,
+    TipoPromotorCadastro,
     Uf,
     Visita,
 )
@@ -25,7 +26,7 @@ from app.infrastructure.models import (
 
 @dataclass(frozen=True)
 class PerguntaInfo:
-    id: int
+    id: str
     tipo_resposta: TipoRespostaChecklist
     obrigatoria: bool
 
@@ -37,16 +38,16 @@ class ContextoValidacao:
     def uf_existe(self, sigla: str) -> bool:
         return self.session.get(Uf, sigla.upper()) is not None
 
-    def cliente_id_por_codigo(self, codigo: str) -> int | None:
+    def cliente_id_por_codigo(self, codigo: str) -> str | None:
         return self.session.scalar(select(Cliente.id).where(Cliente.codigo_externo == codigo))
 
-    def promotor_id_por_codigo(self, codigo: str) -> int | None:
+    def promotor_id_por_codigo(self, codigo: str) -> str | None:
         return self.session.scalar(select(Promotor.id).where(Promotor.codigo_externo == codigo))
 
-    def visita_existe(self, visita_id: int) -> bool:
+    def visita_existe(self, visita_id: str) -> bool:
         return self.session.get(Visita, visita_id) is not None
 
-    def resposta_existe(self, visita_id: int, pergunta_id: int) -> bool:
+    def resposta_existe(self, visita_id: str, pergunta_id: str) -> bool:
         return (
             self.session.scalar(
                 select(ChecklistResposta.id).where(
@@ -57,7 +58,7 @@ class ContextoValidacao:
             is not None
         )
 
-    def resolver_pergunta(self, visita_id: int, ordem: int) -> PerguntaInfo | None:
+    def resolver_pergunta(self, visita_id: str, ordem: int) -> PerguntaInfo | None:
         """Localiza a pergunta pela ordem no template ativo do tipo do promotor
         da visita (IMPORTADOR.md, seção 6.2)."""
 
@@ -67,7 +68,13 @@ class ContextoValidacao:
         promotor = self.session.get(Promotor, visita.promotor_id)
         if promotor is None:
             return None
-        alvos = [TipoPromotorAlvo(promotor.tipo.value), TipoPromotorAlvo.AMBOS]
+        # Tipo agora é cadastral (tabela tipos_promotor); sem tipo definido,
+        # apenas templates AMBOS são elegíveis.
+        alvos = [TipoPromotorAlvo.AMBOS]
+        if promotor.tipo_promotor_id is not None:
+            tipo = self.session.get(TipoPromotorCadastro, promotor.tipo_promotor_id)
+            if tipo is not None and tipo.codigo in TipoPromotorAlvo.__members__:
+                alvos.insert(0, TipoPromotorAlvo(tipo.codigo))
         checklist_id = self.session.scalar(
             select(Checklist.id)
             .where(Checklist.ativo.is_(True), Checklist.tipo_promotor_alvo.in_(alvos))

@@ -8,14 +8,15 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database import Base
+from app.infrastructure.models.identidade import novo_uuid
 
 
 class ImportacaoErro(Base):
     __tablename__ = "importacao_erros"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    importacao_id: Mapped[int] = mapped_column(
-        ForeignKey("importacoes.id", ondelete="CASCADE"), nullable=False
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
+    importacao_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("importacoes.id", ondelete="CASCADE"), nullable=False
     )
     numero_linha: Mapped[int] = mapped_column(Integer, nullable=False)
     coluna: Mapped[str | None] = mapped_column(String(100), nullable=True)

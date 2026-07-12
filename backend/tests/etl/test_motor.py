@@ -136,7 +136,7 @@ def test_falha_no_loader_faz_rollback_completo_da_carga(
 ) -> None:
     """Regra "rollback": falha no meio da carga não persiste nenhuma linha."""
 
-    def loader_que_falha(session: Session, linhas, importacao_id: int, usuario_id: int) -> int:
+    def loader_que_falha(session: Session, linhas, importacao_id: str, usuario_id: str) -> int:
         from etl.loaders import carregar_clientes
 
         carregar_clientes(session, linhas[:1], importacao_id, usuario_id)  # persiste 1 e...

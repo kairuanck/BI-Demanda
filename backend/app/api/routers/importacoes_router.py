@@ -52,7 +52,7 @@ def listar_importacoes(
 
 @router.get("/{importacao_id}", response_model=ImportacaoResponse)
 def obter_importacao(
-    importacao_id: int,
+    importacao_id: str,
     service: ImportacaoService = Depends(get_importacao_service),
 ) -> ImportacaoResponse:
     return ImportacaoResponse.model_validate(service.obter(importacao_id))
@@ -60,7 +60,7 @@ def obter_importacao(
 
 @router.get("/{importacao_id}/erros", response_model=PaginaErrosResponse)
 def listar_erros_importacao(
-    importacao_id: int,
+    importacao_id: str,
     pagina: int = Query(default=1, ge=1),
     tamanho_pagina: int = Query(default=20, ge=1, le=100),
     service: ImportacaoService = Depends(get_importacao_service),
@@ -74,7 +74,7 @@ def listar_erros_importacao(
 
 @router.get("/{importacao_id}/versoes", response_model=list[ImportacaoResponse])
 def listar_versoes_importacao(
-    importacao_id: int,
+    importacao_id: str,
     service: ImportacaoService = Depends(get_importacao_service),
 ) -> list[ImportacaoResponse]:
     return [ImportacaoResponse.model_validate(i) for i in service.listar_versoes(importacao_id)]
@@ -82,7 +82,7 @@ def listar_versoes_importacao(
 
 @router.get("/{importacao_id}/arquivo", response_model=ImportacaoArquivoResponse)
 def obter_arquivo_importacao(
-    importacao_id: int,
+    importacao_id: str,
     service: ImportacaoService = Depends(get_importacao_service),
 ) -> ImportacaoArquivoResponse:
     return ImportacaoArquivoResponse.model_validate(service.obter_arquivo(importacao_id))
@@ -90,7 +90,7 @@ def obter_arquivo_importacao(
 
 @router.post("/{importacao_id}/reprocessar", response_model=ImportacaoResponse)
 def reprocessar_importacao(
-    importacao_id: int,
+    importacao_id: str,
     service: ImportacaoService = Depends(get_importacao_service),
 ) -> ImportacaoResponse:
     return ImportacaoResponse.model_validate(service.reprocessar(importacao_id))
@@ -98,7 +98,7 @@ def reprocessar_importacao(
 
 @router.delete("/{importacao_id}", status_code=status.HTTP_204_NO_CONTENT)
 def excluir_importacao_pendente(
-    importacao_id: int,
+    importacao_id: str,
     service: ImportacaoService = Depends(get_importacao_service),
 ) -> None:
     service.excluir_pendente(importacao_id)

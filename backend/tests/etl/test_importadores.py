@@ -24,6 +24,7 @@ from app.infrastructure.models import (
     Faturamento,
     Promotor,
     Supervisor,
+    TipoPromotorCadastro,
     Usuario,
     Visita,
 )
@@ -128,7 +129,9 @@ def test_importador_carteira_cria_promotores_supervisores_e_vinculos(
     assert len(list(sessao.scalars(select(Supervisor)))) == 1
     promotores = {p.codigo_externo: p for p in sessao.scalars(select(Promotor))}
     assert set(promotores) == {"P001", "P002"}
-    assert promotores["P001"].tipo == TipoPromotor.TECNICO
+    tipo_p001 = sessao.get(TipoPromotorCadastro, promotores["P001"].tipo_promotor_id)
+    assert tipo_p001 is not None
+    assert tipo_p001.codigo == TipoPromotor.TECNICO.value
     vinculos = list(sessao.scalars(select(Carteira)))
     assert len(vinculos) == 3
     assert all(v.status == StatusCarteira.ATIVA for v in vinculos)

@@ -48,7 +48,7 @@ class FluxoArquivos:
         return self._mover_sem_sobrescrever(arquivo, self.rejected)
 
     def arquivar(
-        self, arquivo: Path, tipo_arquivo: str, importacao_id: int, hash_sha256: str
+        self, arquivo: Path, tipo_arquivo: str, importacao_id: str, hash_sha256: str
     ) -> Path:
         """Copia o arquivo para `archive/` com nome rastreável (HASH.md, seção 8)."""
 

@@ -8,13 +8,14 @@ from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database import Base
+from app.infrastructure.models.identidade import novo_uuid
 
 
 class Cidade(Base):
     __tablename__ = "cidades"
     __table_args__ = (UniqueConstraint("nome", "uf_sigla", name="uq_cidades_nome_uf"),)
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
     nome: Mapped[str] = mapped_column(String(150), nullable=False)
     uf_sigla: Mapped[str] = mapped_column(
         String(2), ForeignKey("ufs.sigla", ondelete="RESTRICT"), nullable=False

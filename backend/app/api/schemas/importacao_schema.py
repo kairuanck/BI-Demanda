@@ -12,15 +12,15 @@ from app.domain.enums import StatusImportacao, TipoArquivoImportacao
 class ImportacaoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: str
     tipo_arquivo: TipoArquivoImportacao
     nome_arquivo_original: str
     hash_sha256: str
     tamanho_bytes: int
-    usuario_id: int
+    usuario_id: str
     status: StatusImportacao
     versao: int
-    importacao_pai_id: int | None
+    importacao_pai_id: str | None
     total_linhas: int
     linhas_validas: int
     linhas_invalidas: int
@@ -38,7 +38,7 @@ class ImportacaoResponse(BaseModel):
 class ImportacaoErroResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: str
     numero_linha: int
     coluna: str | None
     valor_recebido: str | None
@@ -48,8 +48,8 @@ class ImportacaoErroResponse(BaseModel):
 class ImportacaoArquivoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    importacao_id: int
+    id: str
+    importacao_id: str
     caminho_armazenamento: str
     nome_arquivo: str
     criado_em: datetime

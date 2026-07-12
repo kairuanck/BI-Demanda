@@ -16,7 +16,7 @@ _CAMPOS_CADASTRAIS = ("razao_social", "nome_fantasia", "cnpj_cpf", "uf_sigla", "
 
 
 def carregar_clientes(
-    session: Session, linhas: list[LinhaValida], importacao_id: int, usuario_id: int
+    session: Session, linhas: list[LinhaValida], importacao_id: str, usuario_id: str
 ) -> int:
     persistidas = 0
     for linha in linhas:

@@ -34,21 +34,21 @@ class ImportacaoService:
     ) -> PaginaImportacoes:
         return self.repository.listar(pagina, tamanho_pagina, tipo_arquivo, status)
 
-    def obter(self, importacao_id: int) -> Importacao:
+    def obter(self, importacao_id: str) -> Importacao:
         importacao = self.repository.obter(importacao_id)
         if importacao is None:
             raise RegistroNaoEncontradoError(f"Importação {importacao_id} não encontrada.")
         return importacao
 
-    def listar_erros(self, importacao_id: int, pagina: int, tamanho_pagina: int) -> PaginaErros:
+    def listar_erros(self, importacao_id: str, pagina: int, tamanho_pagina: int) -> PaginaErros:
         self.obter(importacao_id)
         return self.repository.listar_erros(importacao_id, pagina, tamanho_pagina)
 
-    def listar_versoes(self, importacao_id: int) -> list[Importacao]:
+    def listar_versoes(self, importacao_id: str) -> list[Importacao]:
         importacao = self.obter(importacao_id)
         return self.repository.listar_versoes(importacao.tipo_arquivo)
 
-    def obter_arquivo(self, importacao_id: int) -> ImportacaoArquivo:
+    def obter_arquivo(self, importacao_id: str) -> ImportacaoArquivo:
         self.obter(importacao_id)
         arquivo = self.repository.obter_arquivo(importacao_id)
         if arquivo is None:
@@ -57,7 +57,7 @@ class ImportacaoService:
             )
         return arquivo
 
-    def reprocessar(self, importacao_id: int) -> Importacao:
+    def reprocessar(self, importacao_id: str) -> Importacao:
         """Reexecuta o pipeline a partir da cópia em archive/ (Sprint 2).
 
         A nova execução é uma importação independente: o controle de
@@ -87,7 +87,7 @@ class ImportacaoService:
         shutil.copy2(str(origem), str(destino))
         return self.motor.importar(destino, original.tipo_arquivo, original.usuario_id)
 
-    def excluir_pendente(self, importacao_id: int) -> None:
+    def excluir_pendente(self, importacao_id: str) -> None:
         """Exclui apenas importações com status PENDENTE (Sprint 2)."""
 
         importacao = self.obter(importacao_id)
