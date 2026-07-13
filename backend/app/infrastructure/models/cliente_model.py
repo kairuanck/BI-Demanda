@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database import Base
@@ -19,6 +19,7 @@ from app.infrastructure.models.identidade import novo_uuid
 
 class Cliente(Base):
     __tablename__ = "clientes"
+    __table_args__ = (Index("ix_clientes_uf", "uf_sigla"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
     codigo_externo: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)

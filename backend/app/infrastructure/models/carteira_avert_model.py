@@ -23,7 +23,11 @@ from app.infrastructure.models.identidade import novo_uuid
 
 class CarteiraAvert(Base):
     __tablename__ = "carteiras_avert"
-    __table_args__ = (Index("ix_carteiras_avert_cnpj", "cnpj"),)
+    __table_args__ = (
+        Index("ix_carteiras_avert_cnpj", "cnpj"),
+        Index("ix_carteiras_avert_promotor", "promotor_id"),
+        Index("ix_carteiras_avert_cliente", "cliente_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
     cnpj: Mapped[str] = mapped_column(String(20), nullable=False)

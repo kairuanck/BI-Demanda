@@ -20,7 +20,10 @@ from app.infrastructure.models.identidade import novo_uuid
 
 class Carteira(Base):
     __tablename__ = "carteiras"
-    __table_args__ = (Index("ix_carteiras_cliente_vigencia", "cliente_id", "data_fim_vigencia"),)
+    __table_args__ = (
+        Index("ix_carteiras_cliente_vigencia", "cliente_id", "data_fim_vigencia"),
+        Index("ix_carteiras_promotor", "promotor_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
     promotor_id: Mapped[str] = mapped_column(

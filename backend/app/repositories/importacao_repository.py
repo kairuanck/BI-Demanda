@@ -43,7 +43,7 @@ class ImportacaoRepository:
         total = self.session.scalar(select(func.count()).select_from(consulta.subquery())) or 0
         itens = list(
             self.session.scalars(
-                consulta.order_by(Importacao.id.desc())
+                consulta.order_by(Importacao.criado_em.desc())
                 .offset((pagina - 1) * tamanho_pagina)
                 .limit(tamanho_pagina)
             )

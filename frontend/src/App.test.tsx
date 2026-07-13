@@ -42,11 +42,10 @@ describe("App", () => {
     expect(screen.getByText("Bem-vindo ao Promotores BI")).toBeInTheDocument();
   });
 
-  it("renderiza o placeholder da rota de Dashboard", () => {
+  it("renderiza o Dashboard Executivo na rota de Dashboard", () => {
     renderApp("/dashboard");
 
-    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
-    expect(screen.getByText(/Sprint 10/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dashboard Executivo" })).toBeInTheDocument();
   });
 
   it("redireciona rotas desconhecidas para a Home", () => {

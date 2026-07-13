@@ -10,6 +10,8 @@ A plataforma consolida dados historicamente dispersos em planilhas Excel — bas
 
 Este repositório contém, nesta primeira fase, a **documentação completa de arquitetura, modelagem, backend, frontend, dados, testes e execução em sprints** do projeto. A implementação de código é realizada posteriormente, sprint a sprint, por meio do Claude Code, utilizando os documentos aqui produzidos como especificação de referência.
 
+**Status de implementação:** Sprints 0–4 concluídas (`SPRINT_1_REPORT.md`, `SPRINT_2_REPORT.md`, `SPRINT_3_REPORT.md`, `SPRINT_4_REPORT.md`). O sistema já importa os 5 pacotes de dados reais (Sprint 3) e expõe um Dashboard Executivo funcional — KPIs, gráficos, tabela de promotores e detalhe por promotor sobre dados reais (Sprint 4). Autenticação, upload HTTP de importações e exportação seguem como próximas sprints.
+
 ## 2. Natureza do Projeto
 
 Este projeto é conduzido em duas fases:

@@ -43,6 +43,7 @@ class Visita(Base):
     __tablename__ = "visitas"
     __table_args__ = (
         Index("ix_visitas_promotor_data", "promotor_id", "data_visita"),
+        Index("ix_visitas_cliente", "cliente_id"),
         UniqueConstraint("origem", "codigo_externo", name="uq_visitas_origem_codigo"),
     )
 

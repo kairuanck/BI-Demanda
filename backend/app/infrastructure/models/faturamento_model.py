@@ -23,6 +23,7 @@ class Faturamento(Base):
     __table_args__ = (
         Index("ix_faturamentos_periodo", "ano", "mes"),
         Index("ix_faturamentos_cliente_periodo", "cliente_id", "ano", "mes"),
+        Index("ix_faturamentos_laboratorio", "laboratorio_id"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)

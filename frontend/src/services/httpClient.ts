@@ -40,8 +40,22 @@ async function extrairErro(response: Response): Promise<ApiError> {
   });
 }
 
-export async function httpGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+export type QueryParams = Record<string, string | number | null | undefined>;
+
+function montarQueryString(params?: QueryParams): string {
+  if (!params) return "";
+  const busca = new URLSearchParams();
+  for (const [chave, valor] of Object.entries(params)) {
+    if (valor !== null && valor !== undefined && valor !== "") {
+      busca.append(chave, String(valor));
+    }
+  }
+  const texto = busca.toString();
+  return texto ? `?${texto}` : "";
+}
+
+export async function httpGet<T>(path: string, params?: QueryParams): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}${montarQueryString(params)}`);
   if (!response.ok) {
     throw await extrairErro(response);
   }
