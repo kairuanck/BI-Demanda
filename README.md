@@ -10,7 +10,7 @@ A plataforma consolida dados historicamente dispersos em planilhas Excel — bas
 
 Este repositório contém, nesta primeira fase, a **documentação completa de arquitetura, modelagem, backend, frontend, dados, testes e execução em sprints** do projeto. A implementação de código é realizada posteriormente, sprint a sprint, por meio do Claude Code, utilizando os documentos aqui produzidos como especificação de referência.
 
-**Status de implementação:** Sprints 0–4 concluídas (`SPRINT_1_REPORT.md`, `SPRINT_2_REPORT.md`, `SPRINT_3_REPORT.md`, `SPRINT_4_REPORT.md`). O sistema já importa os 5 pacotes de dados reais (Sprint 3) e expõe um Dashboard Executivo funcional — KPIs, gráficos, tabela de promotores e detalhe por promotor sobre dados reais (Sprint 4). Autenticação, upload HTTP de importações e exportação seguem como próximas sprints.
+**Status de implementação:** Sprints 0–5 concluídas (`SPRINT_1_REPORT.md`, `SPRINT_2_REPORT.md`, `SPRINT_3_REPORT.md`, `SPRINT_4_REPORT.md`, `SPRINT_5_REPORT.md`). O sistema já importa os 5 pacotes de dados reais (Sprint 3), expõe um Dashboard Executivo funcional (Sprint 4) e uma Visão 360º do Cliente — busca global, KPIs, gráficos, laboratórios comprados, vínculos com promotor e histórico cronológico por cliente (Sprint 5). Autenticação, upload HTTP de importações e exportação seguem como próximas sprints.
 
 ## 2. Natureza do Projeto
 
@@ -64,6 +64,7 @@ Detalhamento completo em `PERMISSOES.md`.
 - Importação manual de planilhas Excel, com versionamento, detecção de duplicidade (hash SHA256), histórico completo e rollback.
 - Dashboard Executivo (visão consolidada da operação).
 - Dashboard por Promotor (visão individual de carteira, visitas, checklists e cobertura).
+- Visão 360º do Cliente (busca global, KPIs, evolução de faturamento, laboratórios comprados, vínculo com promotor e histórico cronológico de visitas/checklists/importações por cliente).
 - KPIs: Carteira, Região, Fora da Carteira, Visitas, Checklists, Cobertura, Positivação e Ranking.
 - Filtros por Ano, Mês, UF, Cidade, Departamento, Laboratório, Supervisor, Vendedor, Promotor e Tipo de Promotor.
 - Exportação de dados em Excel, CSV e PDF.

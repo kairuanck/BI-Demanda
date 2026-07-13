@@ -7,32 +7,20 @@ import { BarChart } from "../../components/charts/BarChart";
 import { LineChart } from "../../components/charts/LineChart";
 import { BlocoGrafico } from "../../components/dashboard/BlocoGrafico";
 import { Card } from "../../components/ui/Card";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { KpiCard } from "../../components/ui/KpiCard";
 import { Skeleton } from "../../components/ui/Skeleton";
+import { useBuscarClientes } from "../../hooks/useClienteData";
 import { useDetalhePromotor, useOpcoesFiltro } from "../../hooks/useDashboardData";
 import { useFiltrosDashboard } from "../../hooks/useFiltrosDashboard";
 import {
+  NOMES_MES,
   formatarMesAno,
   formatarMoeda,
   formatarNumero,
   formatarPercentual,
 } from "../../utils/formatadores";
-
-const NOMES_MES = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
 
 const CLASSE_SELECT =
   "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
@@ -44,6 +32,7 @@ export function PromotorDetalhePage() {
   const { data: opcoes } = useOpcoesFiltro();
   const periodo = { ano: filtros.ano, mes: filtros.mes };
   const { data: detalhe, isLoading, isError, refetch } = useDetalhePromotor(promotorId, periodo);
+  const carteira = useBuscarClientes("", 1, 50, promotorId, Boolean(promotorId));
 
   return (
     <div className="space-y-6">
@@ -194,6 +183,60 @@ export function PromotorDetalhePage() {
               />
             </BlocoGrafico>
           </div>
+
+          <Card titulo="Carteira">
+            {carteira.isLoading ? (
+              <Skeleton className="h-32 w-full" />
+            ) : carteira.isError ? (
+              <ErrorState
+                mensagem="Não foi possível carregar a carteira."
+                onRetry={() => carteira.refetch()}
+              />
+            ) : !carteira.data || carteira.data.itens.length === 0 ? (
+              <EmptyState descricao="Nenhum cliente vinculado a este promotor." />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                      <th className="py-2 pr-3 font-medium">Código</th>
+                      <th className="py-2 pr-3 font-medium">Razão Social</th>
+                      <th className="py-2 pr-3 font-medium">Cidade/UF</th>
+                      <th className="py-2 pr-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {carteira.data.itens.map((cliente) => (
+                      <tr
+                        key={cliente.id}
+                        onClick={() => navigate(`/clientes/${cliente.id}`)}
+                        className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-surface-muted"
+                      >
+                        <td className="py-2 pr-3 text-slate-600">{cliente.codigo_externo}</td>
+                        <td className="py-2 pr-3 font-medium text-slate-900">
+                          {cliente.razao_social}
+                        </td>
+                        <td className="py-2 pr-3 text-slate-600">
+                          {cliente.cidade}/{cliente.uf_sigla}
+                        </td>
+                        <td className="py-2 pr-3">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                              cliente.ativo
+                                ? "bg-success/10 text-success"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {cliente.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
 
           {!isLoading && !detalhe && (
             <Card>

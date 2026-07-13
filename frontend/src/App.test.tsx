@@ -27,11 +27,12 @@ describe("App", () => {
     );
   });
 
-  it("renderiza a Sidebar com os 4 itens de navegação da Sprint 0", () => {
+  it("renderiza a Sidebar com os itens de navegação", () => {
     renderApp("/");
 
     expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Clientes" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Importações" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Configurações" })).toBeInTheDocument();
   });

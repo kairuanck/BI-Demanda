@@ -5,6 +5,7 @@ Compatível com SQLite (POC) e PostgreSQL (produção) via `DATABASE_URL`.
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Generator
 from pathlib import Path
 
@@ -16,6 +17,21 @@ from app.core.config import get_settings
 
 class Base(DeclarativeBase):
     """Classe declarativa base de todos os modelos SQLAlchemy."""
+
+
+def normalizar_para_busca(texto: str | None) -> str | None:
+    """Minúsculas + sem acento, para busca textual (Sprint 5).
+
+    O `LOWER()` nativo do SQLite não faz *case-folding* de caracteres
+    acentuados — mesma limitação encontrada para nomes de promotor na
+    Sprint 3 (docs/DECISIONS.md, seção 15.3). Registrada como função SQL
+    (`norm_busca`) só para SQLite: o `ILIKE` do PostgreSQL já resolve isso
+    nativamente na produção.
+    """
+
+    if texto is None:
+        return None
+    return unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii").lower()
 
 
 def _criar_engine() -> Engine:
@@ -43,6 +59,12 @@ def _criar_engine() -> Engine:
             cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.close()
+
+        @event.listens_for(engine, "connect")
+        def _registrar_norm_busca(dbapi_connection: object, _connection_record: object) -> None:
+            dbapi_connection.create_function(  # type: ignore[attr-defined]
+                "norm_busca", 1, normalizar_para_busca
+            )
 
     return engine
 

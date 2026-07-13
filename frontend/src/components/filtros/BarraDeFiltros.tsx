@@ -4,22 +4,8 @@
 
 import { useOpcoesFiltro } from "../../hooks/useDashboardData";
 import type { FiltrosDashboard } from "../../types/dashboard";
+import { NOMES_MES } from "../../utils/formatadores";
 import { Skeleton } from "../ui/Skeleton";
-
-const NOMES_MES = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
 
 const NOMES_SISTEMA: Record<string, string> = {
   SB_PROMOTOR: "SB Promotor",

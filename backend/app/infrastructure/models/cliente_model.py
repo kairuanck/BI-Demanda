@@ -19,7 +19,10 @@ from app.infrastructure.models.identidade import novo_uuid
 
 class Cliente(Base):
     __tablename__ = "clientes"
-    __table_args__ = (Index("ix_clientes_uf", "uf_sigla"),)
+    __table_args__ = (
+        Index("ix_clientes_uf", "uf_sigla"),
+        Index("ix_clientes_cnpj_cpf", "cnpj_cpf"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=novo_uuid)
     codigo_externo: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)

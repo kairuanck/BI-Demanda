@@ -19,7 +19,7 @@ export function formatarPercentual(valor: string | number | null | undefined): s
   );
 }
 
-const NOMES_MES = [
+export const NOMES_MES = [
   "Janeiro",
   "Fevereiro",
   "Março",
