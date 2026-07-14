@@ -1,4 +1,4 @@
-# Encerra o backend e o frontend iniciados por .\iniciar-sem-docker.ps1.
+﻿# Encerra o backend e o frontend iniciados por .\iniciar-sem-docker.ps1.
 # Os dados continuam salvos em database\ e imports\ — nada é apagado.
 # Uso: .\parar-sem-docker.ps1
 

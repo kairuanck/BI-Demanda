@@ -1,4 +1,4 @@
-# Alternativa a ./iniciar.sh para Windows sem Docker e sem Git (ex.: sem
+﻿# Alternativa a ./iniciar.sh para Windows sem Docker e sem Git (ex.: sem
 # perfil de administrador para instalar nenhum dos dois). Só precisa do
 # PowerShell, que já vem com o Windows, e de Python 3.12 + Node.js
 # instalados (ver PRIMEIRO_USO.md, seção "Alternativa para Windows sem
