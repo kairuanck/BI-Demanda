@@ -20,16 +20,19 @@ azul "==> Verificando se o Python está instalado..."
 PYTHON_BIN=""
 for candidato in python3.12 python3 python; do
   if command -v "$candidato" >/dev/null 2>&1; then
-    versao="$("$candidato" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)"
-    if [ "$versao" = "3.12" ]; then
+    # Aceita 3.12 ou mais novo (o projeto não tem limite superior: pyproject.toml
+    # declara "requires-python = >=3.12") — versões futuras do Python (3.13, 3.14...)
+    # não devem ser recusadas só por não serem exatamente "3.12".
+    versao_ok="$("$candidato" -c 'import sys; print(1 if sys.version_info[:2] >= (3, 12) else 0)' 2>/dev/null)"
+    if [ "$versao_ok" = "1" ]; then
       PYTHON_BIN="$candidato"
       break
     fi
   fi
 done
 if [ -z "$PYTHON_BIN" ]; then
-  vermelho "Não encontrei o Python 3.12 instalado."
-  echo "Baixe em https://www.python.org/downloads/ (escolha a versão 3.12)."
+  vermelho "Não encontrei o Python 3.12 (ou mais novo) instalado."
+  echo "Baixe em https://www.python.org/downloads/ (escolha a versão 3.12 ou mais recente)."
   echo "Windows: marque a caixa 'Add python.exe to PATH' durante a instalação — é o erro mais comum."
   exit 1
 fi

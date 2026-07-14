@@ -393,3 +393,12 @@ O mesmo usuário da seção 33 também não conseguiu instalar o Git (necessári
 2. Aplicado preventivamente o mesmo cuidado da seção 33 (processo-filho órfão sobrevivendo ao "encerrar"): `parar-sem-docker.ps1` primeiro localiza e mata processos-filho via `Get-CimInstance Win32_Process -Filter "ParentProcessId = ..."` antes de matar o processo principal — mesmo que aqui os processos sejam chamados diretamente (sem um wrapper como `npm run`), reduzindo o risco de o problema já corrigido na versão Bash se repetir de outra forma no Windows.
 
 Peço ao usuário para reportar a mensagem exata de qualquer erro encontrado, para corrigir rapidamente — sem uma máquina Windows para testar, este é o caminho mais provável de precisar de um ajuste na prática.
+
+## 35. Dois bugs reais encontrados na validação com o usuário no Windows
+
+Confirmando a limitação da seção 34, a primeira execução real em Windows encontrou dois problemas, ambos corrigidos:
+
+1. **Acentos quebravam o parser do PowerShell** (`"A cadeia de caracteres não tem o terminador"`). O Windows PowerShell 5.1 (a versão pré-instalada — diferente do PowerShell 7+) só reconhece um `.ps1` como UTF-8 se o arquivo começar com BOM; sem isso, ele lê pelo codepage ANSI do sistema, e qualquer acento (`ç`, `ã`, `ção`...) corrompe a leitura a partir daquele ponto. Os dois scripts `.ps1` foram criados sem BOM (padrão da ferramenta usada para gerá-los). Corrigido adicionando o BOM UTF-8 (`EF BB BF`) no início de `iniciar-sem-docker.ps1` e `parar-sem-docker.ps1`.
+2. **Checagem de versão do Python rejeitava versões novas.** O script comparava a versão instalada contra a string exata `"3.12"` — um usuário com Python 3.14 instalado (mais novo, portanto compatível) era informado que "não encontrei o Python 3.12 instalado", mesmo tendo uma versão válida. `pyproject.toml` declara `requires-python = ">=3.12"`, sem limite superior — não há razão para recusar 3.13/3.14/etc. Corrigido em ambas as versões (`.sh` e `.ps1`) para comparar `(major, minor) >= (3, 12)` numericamente, em vez de comparar a string inteira.
+
+Confirma o padrão desta preparação: cada canal de execução (Docker, Bash, PowerShell) só ganhou confiança real depois de alguém genuinamente tentar usá-lo do zero — a validação em sandbox (seções 30, 33) pegou a maioria dos problemas, mas não todos; o teste com o usuário real continua sendo o critério final.

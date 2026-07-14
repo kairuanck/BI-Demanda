@@ -23,20 +23,27 @@ function Falha($msg) { Write-Host $msg -ForegroundColor Red }
 # ------------------------------------------------------------------ checagens
 
 Info "Verificando se o Python está instalado..."
+# Aceita 3.12 ou mais novo (o projeto não tem limite superior: pyproject.toml
+# declara "requires-python = >=3.12") — versões futuras do Python (3.13, 3.14...)
+# não devem ser recusadas só por não serem exatamente "3.12".
 $pythonCmd = $null
 foreach ($cand in @("python", "py")) {
     $existe = Get-Command $cand -ErrorAction SilentlyContinue
     if ($existe) {
         $versao = (& $cand --version 2>&1 | Out-String)
-        if ($versao -match "3\.12") {
-            $pythonCmd = $cand
-            break
+        if ($versao -match "Python (\d+)\.(\d+)") {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            if ($major -eq 3 -and $minor -ge 12) {
+                $pythonCmd = $cand
+                break
+            }
         }
     }
 }
 if (-not $pythonCmd) {
-    Falha "Não encontrei o Python 3.12 instalado."
-    Write-Host "Baixe em https://www.python.org/downloads/ (escolha a versão 3.12)."
+    Falha "Não encontrei o Python 3.12 (ou mais novo) instalado."
+    Write-Host "Baixe em https://www.python.org/downloads/ (escolha a versão 3.12 ou mais recente)."
     Write-Host "Se você não tem permissão de administrador, use 'Customize installation'"
     Write-Host "e desmarque 'Install for all users' — instala só para o seu usuário."
     exit 1
