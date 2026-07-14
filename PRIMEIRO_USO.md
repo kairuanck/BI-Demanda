@@ -179,6 +179,56 @@ A partir daqui, siga normalmente as seções **"Como acessar no navegador"**, **
 
 ---
 
+## Alternativa para Windows sem permissão de administrador (sem Git, sem Docker)
+
+Se além do Docker você **também não consegue instalar o Git** (mensagem tipo "fale com o administrador", "acesso negado", ou não existe opção de instalar programas no seu computador), ainda existe um caminho: usar o **PowerShell**, que já vem pronto em qualquer Windows, sem precisar instalar nada além de Python e Node.js — e os dois têm uma forma de instalar **sem administrador**.
+
+### Passo 1 — Instalar o Python sem administrador
+
+1. Acesse **https://www.python.org/downloads/** e baixe a versão **3.12**.
+2. Execute o instalador, mas em vez de clicar em "Install Now", clique em **"Customize installation"**.
+3. Avance até a tela **"Advanced Options"** e **desmarque a caixa "Install for all users"** (se estiver marcada). Mantenha marcada a opção de adicionar ao PATH.
+4. Continue e finalize a instalação — assim ele instala só para o seu usuário, sem pedir permissão de administrador.
+
+### Passo 2 — Instalar o Node.js sem administrador (versão "portátil")
+
+1. Acesse **https://nodejs.org/en/download**.
+2. Escolha a opção de download em formato **".zip"** (não o instalador ".msi") para Windows.
+3. Depois de baixado, clique com o botão direito no arquivo `.zip` e escolha **"Extrair tudo..."**, salvando numa pasta sua, por exemplo `C:\Users\SEU-USUARIO\node`.
+4. Adicione essa pasta ao PATH do seu usuário (não precisa de administrador):
+   - Clique no menu Iniciar e digite **"Editar variáveis de ambiente da sua conta"** — abra esse resultado.
+   - Na lista de cima ("Variáveis de usuário"), clique em **"Path"** e depois em **"Editar..."**.
+   - Clique em **"Novo"** e cole o caminho da pasta onde extraiu o Node (ex.: `C:\Users\SEU-USUARIO\node`).
+   - Clique OK em todas as janelas.
+5. Feche e abra de novo qualquer Terminal/PowerShell para o PATH atualizar.
+
+### Passo 3 — Liberar o PowerShell para rodar o script (uma única vez)
+
+1. Clique no menu Iniciar, digite **PowerShell** e abra (não precisa ser "como administrador").
+2. Cole o comando abaixo e pressione Enter — **isto não pede permissão de administrador**, porque só vale para o seu usuário:
+   ```
+   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+   ```
+
+### Passo 4 — Iniciar
+
+1. No mesmo PowerShell, digite `cd ` (com espaço) e arraste a pasta do projeto para dentro da janela, igual descrito antes. Pressione Enter.
+2. Rode:
+   ```
+   .\iniciar-sem-docker.ps1
+   ```
+3. Igual aos outros caminhos: demora mais na primeira vez, depois mostra a mesma mensagem de sucesso com **http://localhost:5173**.
+
+### Como encerrar
+
+```
+.\parar-sem-docker.ps1
+```
+
+Se o PowerShell reclamar que "não pode ser carregado porque a execução de scripts foi desabilitada", é sinal de que o Passo 3 não foi feito (ou foi feito num PowerShell diferente) — repita o Passo 3 e tente de novo.
+
+---
+
 ## Problemas comuns
 
 **"./iniciar.sh: Permission denied" (ou o mesmo erro com `iniciar-sem-docker.sh`)**
@@ -189,6 +239,9 @@ O Docker Desktop não está aberto (ou não terminou de carregar). Abra o Docker
 
 **O Docker Desktop não instala, trava, ou dá "falha na instalação"**
 Alguns computadores (mais antigos, ou corporativos com restrições) não conseguem instalar o Docker. Use a seção **"Alternativa: não consigo instalar ou rodar o Docker"** acima — um segundo caminho que não depende dele.
+
+**Não consigo instalar nem o Git (sem permissão de administrador)**
+Veja a seção **"Alternativa para Windows sem permissão de administrador"** — usa só o PowerShell (já vem no Windows) e instala Python/Node.js sem precisar de administrador.
 
 **A página não carrega em http://localhost:5173**
 Espere mais alguns segundos e atualize a página — na primeira execução o sistema pode levar um pouco mais para ficar pronto. Se persistir, rode `./parar.sh` (ou `./parar-sem-docker.sh`, se você usou o caminho alternativo) e depois inicie de novo.

@@ -139,6 +139,8 @@ BI-Demanda/
 ├── parar.sh                # encerra (Docker)
 ├── iniciar-sem-docker.sh   # alternativa sem Docker (Python + Node.js)
 ├── parar-sem-docker.sh     # encerra (sem Docker)
+├── iniciar-sem-docker.ps1  # mesma alternativa, para Windows sem Git/admin
+├── parar-sem-docker.ps1    # encerra (Windows sem Git/admin)
 ├── .env.example
 ├── README.md
 ├── PRIMEIRO_USO.md   # guia de primeiro uso para quem não programa
@@ -167,11 +169,18 @@ Para encerrar: `./parar.sh` (os dados em `database/` e `imports/` continuam salv
 Para quando o Docker não instala/roda na máquina (ver `PRIMEIRO_USO.md`, seção "Alternativa"). Requer Python 3.12 e Node.js 20 instalados; o script cuida do resto (venv, dependências, migrações, seeds) e sobe os dois serviços em segundo plano:
 
 ```bash
-./iniciar-sem-docker.sh   # inicia
+./iniciar-sem-docker.sh   # Linux/macOS/Git Bash — inicia
 ./parar-sem-docker.sh     # encerra
 ```
 
-Logs em `.run/backend.log` e `.run/frontend.log`, caso algo precise de diagnóstico.
+No Windows sem Git (ex.: sem permissão de administrador para instalar nada além de Python/Node), use os equivalentes em PowerShell — ver `PRIMEIRO_USO.md`, seção "Alternativa para Windows sem permissão de administrador":
+
+```powershell
+.\iniciar-sem-docker.ps1   # inicia
+.\parar-sem-docker.ps1     # encerra
+```
+
+Logs em `.run/backend.log` e `.run/frontend.log` (ou `.run/backend-err.log`/`.run/frontend-err.log` na versão PowerShell), caso algo precise de diagnóstico.
 
 ### Ambiente de desenvolvimento (contribuidores)
 
