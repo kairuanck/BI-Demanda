@@ -17,6 +17,10 @@ pip install -e ".[dev]"
 echo "==> Backend: aplicando migrações..."
 alembic upgrade head
 
+echo "==> Backend: aplicando dados de referência (UFs e tipos de promotor)..."
+python -m app.infrastructure.seeds.seed_ufs
+python -m app.infrastructure.seeds.seed_tipos_promotor
+
 echo "==> Frontend: instalando dependências..."
 cd "$ROOT_DIR/frontend"
 npm install

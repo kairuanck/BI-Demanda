@@ -2,6 +2,8 @@
 
 Plataforma web de Business Intelligence para gestão de Promotores Técnicos e Promotores Trade do mercado pet.
 
+> **Quer só colocar o sistema para rodar no seu computador, sem instalar nada além do Docker?** Siga o [`PRIMEIRO_USO.md`](PRIMEIRO_USO.md) — um guia passo a passo para quem nunca programou. Este README é a referência técnica completa do projeto.
+
 ## 1. Visão Geral
 
 O **Promotores BI** é uma plataforma de business intelligence voltada à gestão, ao acompanhamento e à análise de desempenho de equipes de campo (Promotores Técnicos e Promotores Trade) que atuam no mercado pet, atendendo uma carteira de clientes (pet shops, clínicas veterinárias, distribuidores e demais canais).
@@ -125,15 +127,21 @@ BI-Demanda/
 │   └── package.json
 ├── database/         # arquivo SQLite em tempo de execução (não versionado)
 ├── imports/          # arquivos de importação armazenados (não versionado)
-├── scripts/          # setup.sh, dev-backend.sh, dev-frontend.sh
+├── scripts/          # setup.sh, dev-backend.sh, dev-frontend.sh (uso opcional, ambiente de desenvolvimento)
 ├── tests/            # reservado para testes E2E (Sprint 12)
 ├── docs/
-│   └── DECISIONS.md  # inconsistências e decisões registradas por sprint
+│   ├── DECISIONS.md    # inconsistências e decisões registradas por sprint
+│   └── screenshots/    # capturas de tela usadas em PRIMEIRO_USO.md
 ├── .github/
 │   └── workflows/ci.yml
 ├── docker-compose.yml
+├── iniciar.sh              # sobe a aplicação via Docker (ver PRIMEIRO_USO.md)
+├── parar.sh                # encerra (Docker)
+├── iniciar-sem-docker.sh   # alternativa sem Docker (Python + Node.js)
+├── parar-sem-docker.sh     # encerra (sem Docker)
 ├── .env.example
 ├── README.md
+├── PRIMEIRO_USO.md   # guia de primeiro uso para quem não programa
 └── ... (demais arquivos .md desta documentação)
 ```
 
@@ -141,43 +149,41 @@ A estrutura definitiva e o detalhamento pasta a pasta estão em `BACKEND.md` (se
 
 ## 9. Como Executar Localmente
 
-### Opção A — Docker Compose (um único comando)
+**Caminho recomendado: Docker Compose.** É a forma mais simples para quem não tem ambiente de desenvolvimento já configurado — não exige Python, Node.js nem nenhuma outra ferramenta além do Docker. Guia completo com capturas de tela em [`PRIMEIRO_USO.md`](PRIMEIRO_USO.md); resumo técnico:
 
 ```bash
-cp .env.example .env   # ajuste os segredos antes de produção
-docker compose up --build
+./iniciar.sh
 ```
 
-- Backend: http://localhost:8000 (health em `/api/v1/health`, docs em `/docs`)
-- Frontend: http://localhost:5173
+O script constrói e sobe backend, frontend e banco de dados (SQLite, criado automaticamente em `database/app.db` na primeira execução, junto com os dados de referência — UFs e tipos de promotor), aguarda o backend ficar saudável e imprime o endereço de acesso quando tudo estiver pronto.
 
-### Opção B — Sem Docker
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8000 (health em `/api/v1/health`, docs interativos em `/docs`)
+
+Para encerrar: `./parar.sh` (os dados em `database/` e `imports/` continuam salvos). Equivalente manual, caso prefira não usar os scripts: `docker compose up --build` / `docker compose down`.
+
+### Alternativa sem Docker
+
+Para quando o Docker não instala/roda na máquina (ver `PRIMEIRO_USO.md`, seção "Alternativa"). Requer Python 3.12 e Node.js 20 instalados; o script cuida do resto (venv, dependências, migrações, seeds) e sobe os dois serviços em segundo plano:
 
 ```bash
-./scripts/setup.sh          # cria venv, instala deps, aplica migrações, npm install
+./iniciar-sem-docker.sh   # inicia
+./parar-sem-docker.sh     # encerra
+```
+
+Logs em `.run/backend.log` e `.run/frontend.log`, caso algo precise de diagnóstico.
+
+### Ambiente de desenvolvimento (contribuidores)
+
+Rodar backend e frontend fora de container (com hot-reload) exige Python 3.12 e Node.js 20 instalados. Útil para quem vai alterar o código, não para uma primeira execução:
+
+```bash
+./scripts/setup.sh          # cria venv, instala deps, aplica migrações + seeds, npm install
 ./scripts/dev-backend.sh    # terminal 1 — http://localhost:8000
 ./scripts/dev-frontend.sh   # terminal 2 — http://localhost:5173
 ```
 
-Ou manualmente:
-
-```bash
-# Backend
-cd backend
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-cp .env.example .env
-alembic upgrade head
-uvicorn app.main:app --reload
-
-# Frontend (em outro terminal)
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
-
-### Qualidade
+Qualidade:
 
 ```bash
 cd backend && ruff check . && black --check . && mypy app && pytest --cov=app

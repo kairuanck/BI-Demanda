@@ -27,5 +27,8 @@ frontend/coverage/
 .env.production
 !*.env.example
 
+# Execução local sem Docker (iniciar-sem-docker.sh)
+.run/
+
 # Diversos
 .DS_Store
