@@ -32,12 +32,23 @@ class FluxoArquivos:
         for diretorio in (self.incoming, self.processed, self.rejected, self.archive):
             diretorio.mkdir(parents=True, exist_ok=True)
 
-    def _mover_sem_sobrescrever(self, origem: Path, destino_dir: Path) -> Path:
-        destino = destino_dir / origem.name
+    def caminho_disponivel(self, diretorio: Path, nome_arquivo: str) -> Path:
+        """Primeiro caminho livre em `diretorio` para `nome_arquivo` (Sprint 2/6).
+
+        Usado tanto ao mover arquivos processados/rejeitados quanto ao
+        gravar um novo arquivo em `incoming/` (upload Web e reprocessamento)
+        — nunca sobrescreve um arquivo já existente.
+        """
+
+        destino = diretorio / nome_arquivo
         contador = 1
         while destino.exists():
-            destino = destino_dir / f"{origem.stem}_{contador}{origem.suffix}"
+            destino = diretorio / f"{Path(nome_arquivo).stem}_{contador}{Path(nome_arquivo).suffix}"
             contador += 1
+        return destino
+
+    def _mover_sem_sobrescrever(self, origem: Path, destino_dir: Path) -> Path:
+        destino = self.caminho_disponivel(destino_dir, origem.name)
         shutil.move(str(origem), str(destino))
         return destino
 

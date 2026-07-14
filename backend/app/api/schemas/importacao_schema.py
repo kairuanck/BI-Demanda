@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 from app.domain.enums import StatusImportacao, TipoArquivoImportacao
 
@@ -23,6 +23,7 @@ class ImportacaoResponse(BaseModel):
     status: StatusImportacao
     versao: int
     importacao_pai_id: str | None
+    usuario_nome: str
     total_linhas: int
     linhas_validas: int
     linhas_invalidas: int
@@ -30,8 +31,16 @@ class ImportacaoResponse(BaseModel):
     concluido_em: datetime | None
     criado_em: datetime
 
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def duracao_segundos(self) -> float | None:
+        """Tempo de processamento (Sprint 6, Tela de Importações).
+
+        Era uma `@property` simples (não serializada pelo Pydantic v2 sem
+        `@computed_field`) — nunca aparecia na resposta da API; corrigido
+        aqui porque a Central de Importações depende deste campo.
+        """
+
         if self.iniciado_em and self.concluido_em:
             return (self.concluido_em - self.iniciado_em).total_seconds()
         return None

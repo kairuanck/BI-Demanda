@@ -333,6 +333,32 @@ class MotorImportacao:
         self.fluxo.mover_para_rejected(caminho)
         return importacao
 
+    def cancelar(self, importacao: Importacao, usuario_id: str) -> Importacao:
+        """Cancela uma importação `PENDENTE`, antes de iniciar o processamento (Sprint 6).
+
+        Nesta arquitetura o processamento é síncrono (sem fila em segundo
+        plano), então não existe uma execução "em andamento" que possa ser
+        interrompida no servidor — `PENDENTE` é o único estado em que
+        cancelar tem sentido. Reusa o mesmo formato de tentativa recusada
+        de `_registrar_recusa`: `status=FALHOU`, `versao=0` (fora da cadeia
+        de versões) e um `ImportacaoErro` explicando o motivo.
+        """
+
+        importacao.status = StatusImportacao.FALHOU
+        importacao.versao = 0
+        importacao.concluido_em = _agora_utc()
+        self.session.add(
+            ImportacaoErro(
+                importacao_id=importacao.id,
+                numero_linha=LINHA_ARQUIVO,
+                mensagem_erro="Importação cancelada pelo usuário.",
+            )
+        )
+        self._auditar(importacao, usuario_id)
+        self.session.commit()
+        logger.info("Importação #%s cancelada pelo usuário.", importacao.id)
+        return importacao
+
     def _registrar_erros(self, importacao_id: str, erros: list[ErroLinha]) -> None:
         for erro in erros:
             self.session.add(

@@ -10,7 +10,7 @@ A plataforma consolida dados historicamente dispersos em planilhas Excel — bas
 
 Este repositório contém, nesta primeira fase, a **documentação completa de arquitetura, modelagem, backend, frontend, dados, testes e execução em sprints** do projeto. A implementação de código é realizada posteriormente, sprint a sprint, por meio do Claude Code, utilizando os documentos aqui produzidos como especificação de referência.
 
-**Status de implementação:** Sprints 0–5 concluídas (`SPRINT_1_REPORT.md`, `SPRINT_2_REPORT.md`, `SPRINT_3_REPORT.md`, `SPRINT_4_REPORT.md`, `SPRINT_5_REPORT.md`). O sistema já importa os 5 pacotes de dados reais (Sprint 3), expõe um Dashboard Executivo funcional (Sprint 4) e uma Visão 360º do Cliente — busca global, KPIs, gráficos, laboratórios comprados, vínculos com promotor e histórico cronológico por cliente (Sprint 5). Autenticação, upload HTTP de importações e exportação seguem como próximas sprints.
+**Status de implementação:** Sprints 0–6 concluídas (`SPRINT_1_REPORT.md`, `SPRINT_2_REPORT.md`, `SPRINT_3_REPORT.md`, `SPRINT_4_REPORT.md`, `SPRINT_5_REPORT.md`, `SPRINT_6_REPORT.md`). O sistema já importa os 5 pacotes de dados reais (Sprint 3), expõe um Dashboard Executivo funcional (Sprint 4), uma Visão 360º do Cliente (Sprint 5) e uma Central de Importações — upload de planilhas `.xlsx` via navegador, com detecção automática de tipo, histórico, detalhe, reprocessamento, cancelamento e download de relatório de inconsistências, sem necessidade de terminal (Sprint 6). Autenticação e exportação seguem como próximas sprints.
 
 ## 2. Natureza do Projeto
 
@@ -61,7 +61,7 @@ Detalhamento completo em `PERMISSOES.md`.
 ## 5. Funcionalidades Principais
 
 - Autenticação e controle de usuários por perfil.
-- Importação manual de planilhas Excel, com versionamento, detecção de duplicidade (hash SHA256), histórico completo e rollback.
+- Central de Importações via navegador (drag & drop, seleção múltipla, progresso em tempo real, detecção automática do tipo de arquivo, versionamento, detecção de duplicidade por hash SHA-256, histórico completo, reprocessamento, cancelamento e download do relatório de inconsistências) — nenhuma importação depende mais de terminal.
 - Dashboard Executivo (visão consolidada da operação).
 - Dashboard por Promotor (visão individual de carteira, visitas, checklists e cobertura).
 - Visão 360º do Cliente (busca global, KPIs, evolução de faturamento, laboratórios comprados, vínculo com promotor e histórico cronológico de visitas/checklists/importações por cliente).

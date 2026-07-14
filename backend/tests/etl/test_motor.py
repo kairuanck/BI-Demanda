@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.enums import StatusImportacao, TipoArquivoImportacao
-from app.infrastructure.models import Cliente, ImportacaoErro, LogAuditoria, Usuario
+from app.infrastructure.models import Cliente, Importacao, ImportacaoErro, LogAuditoria, Usuario
 from etl.arquivos import FluxoArquivos
 from etl.conectores import ConectorLegado
 from etl.layouts import LAYOUTS
@@ -180,3 +180,41 @@ def test_toda_importacao_gera_registro_de_auditoria(
     assert dados["status"] == "CONCLUIDA"
     assert dados["hash_sha256"] == importacao.hash_sha256
     assert dados["duracao_segundos"] is not None
+
+
+def test_cancelar_pendente_marca_falhou_com_erro_e_auditoria(
+    motor: MotorImportacao, usuario_admin: Usuario, sessao: Session
+) -> None:
+    """`cancelar` (Sprint 6) reusa o mesmo formato de tentativa recusada:
+    `status=FALHOU`, `versao=0`, erro explicativo e auditoria."""
+
+    pendente = Importacao(
+        tipo_arquivo=TipoArquivoImportacao.CLIENTES,
+        nome_arquivo_original="pendente.xlsx",
+        hash_sha256="a" * 64,
+        tamanho_bytes=10,
+        usuario_id=usuario_admin.id,
+        status=StatusImportacao.PENDENTE,
+        versao=1,
+    )
+    sessao.add(pendente)
+    sessao.commit()
+
+    cancelada = motor.cancelar(pendente, usuario_admin.id)
+
+    assert cancelada.status == StatusImportacao.FALHOU
+    assert cancelada.versao == 0
+    assert cancelada.concluido_em is not None
+    erros = list(
+        sessao.scalars(select(ImportacaoErro).where(ImportacaoErro.importacao_id == pendente.id))
+    )
+    assert len(erros) == 1
+    assert "cancelada" in erros[0].mensagem_erro.lower()
+    registros = list(
+        sessao.scalars(
+            select(LogAuditoria).where(
+                LogAuditoria.entidade == "importacoes", LogAuditoria.entidade_id == pendente.id
+            )
+        )
+    )
+    assert len(registros) == 1

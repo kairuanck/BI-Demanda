@@ -14,6 +14,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { useBuscarClientes } from "../../hooks/useClienteData";
 import { useDetalhePromotor, useOpcoesFiltro } from "../../hooks/useDashboardData";
 import { useFiltrosDashboard } from "../../hooks/useFiltrosDashboard";
+import { CLASSE_SELECT } from "../../utils/estilos";
 import {
   NOMES_MES,
   formatarMesAno,
@@ -21,9 +22,6 @@ import {
   formatarNumero,
   formatarPercentual,
 } from "../../utils/formatadores";
-
-const CLASSE_SELECT =
-  "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 export function PromotorDetalhePage() {
   const { promotorId } = useParams<{ promotorId: string }>();

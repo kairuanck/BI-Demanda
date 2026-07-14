@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./App";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
+import { ToastProvider } from "./components/ui/Toast";
 import { ApiError } from "./services/httpClient";
 import "./styles/index.css";
 
@@ -28,9 +29,11 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,

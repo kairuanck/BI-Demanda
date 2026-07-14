@@ -21,6 +21,7 @@ import {
   useVisitasPorMesCliente,
 } from "../../hooks/useClienteData";
 import type { FiltrosCliente } from "../../types/cliente";
+import { CLASSE_SELECT } from "../../utils/estilos";
 import {
   NOMES_MES,
   formatarDataHora,
@@ -44,9 +45,6 @@ const RUBRICAS_TIMELINE: Record<string, string> = {
   IMPORTACAO: "bg-slate-100 text-slate-600",
   ALTERACAO_CADASTRAL: "bg-warning/10 text-warning",
 };
-
-const CLASSE_SELECT =
-  "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 function formatarDias(dias: number | null): string {
   if (dias === null) return "Nunca visitado";

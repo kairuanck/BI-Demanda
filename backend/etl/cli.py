@@ -1,15 +1,10 @@
 """CLI de importação (Sprint 3, Fase 5).
 
-Endpoint de upload HTTP segue fora de escopo (SPRINT_2_REPORT.md, pendência
-1); esta CLI é o caminho operacional para carregar arquivos reais
-enquanto ele não existe. Também é o instrumento usado para a carga
-completa dos dados reais desta sprint.
-
-Inferência estrutural de tipo (nunca por nome de arquivo — os exports reais
-têm nomes livres): cada `TipoArquivoImportacao` tem uma assinatura de abas +
-colunas: nome de aba conhecido, ou conjunto de colunas do cabeçalho da
-primeira aba. Arquivo que não casa com nenhuma assinatura é reportado como
-não reconhecido — nunca importado às cegas.
+A partir da Sprint 6 o caminho operacional recomendado é o upload Web
+(`POST /api/v1/importacoes/upload`, docs/DECISIONS.md); esta CLI permanece
+disponível para scripts/automação e reusa a mesma inferência de tipo
+(`etl/inferencia.py`) e o mesmo usuário de sistema
+(`app/services/usuario_service.py`) usados pelo endpoint.
 """
 
 from __future__ import annotations
@@ -19,74 +14,13 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from app.domain.enums import PerfilUsuario, TipoArquivoImportacao
 from app.infrastructure.database import SessionLocal
-from app.infrastructure.models import Usuario
+from app.services.usuario_service import obter_ou_criar_usuario_sistema
 from etl.arquivos import FluxoArquivos
-from etl.conectores.leitura import ler_abas
+from etl.inferencia import inferir_tipo_arquivo
 from etl.motor import MotorImportacao
 
-_ABAS_BASE_CLIENTES = {"CÓDIGO", "CNPJ/CPF", "CLIENTE", "ESTADO"}
-_ABAS_SB_PRODUTOS = {"PRODUTOS", "GONDOLA", "PRODUTOSIMILAR", "TAREFAS"}
-_COLUNAS_SB_SUPERVISOR = {
-    "ÁREA",
-    "VISITAS PREVISTAS",
-    "PREVISTAS REALIZADAS",
-    "NÃO VISITAS",
-}
-_COLUNAS_PAINEL_AVERT = {"CNPJ", "CONSULTOR", "GRUPO ECONÔMICO", "SEGMENTO"}
-_COLUNAS_WECHECK = {"FORMULÁRIO", "AUTOR", "DATA / HORA DO ITEM"}
-_COLUNAS_CHECKLIST = {"VISITA", "CK_ID", "APLICAÇÃO"}
-_COLUNAS_FATURAMENTO = {"DEPARTAMENTO"}
-
-
-def inferir_tipo_arquivo(caminho: Path) -> TipoArquivoImportacao | None:
-    """Estrutura do arquivo → tipo, nunca o nome (docs/DECISIONS.md, 11.3)."""
-
-    try:
-        abas = ler_abas(caminho)
-    except Exception:  # noqa: BLE001 - arquivo ilegível: deixa o motor recusar
-        return None
-    if not abas:
-        return None
-
-    titulos = {aba.titulo.strip().upper() for aba in abas}
-    if titulos & _ABAS_SB_PRODUTOS:
-        return TipoArquivoImportacao.SB_PRODUTOS
-
-    primeira = abas[0]
-    cabecalho = {c.strip().upper() for c in primeira.cabecalho() if c}
-    if _COLUNAS_CHECKLIST <= cabecalho:
-        return TipoArquivoImportacao.CHECKLIST
-    if _COLUNAS_SB_SUPERVISOR <= cabecalho:
-        return TipoArquivoImportacao.CARTEIRA
-    if _COLUNAS_PAINEL_AVERT <= cabecalho:
-        return TipoArquivoImportacao.PAINEL_AVERT
-    if _COLUNAS_WECHECK <= cabecalho:
-        return TipoArquivoImportacao.WECHECK
-    if _COLUNAS_FATURAMENTO <= cabecalho:
-        return TipoArquivoImportacao.FATURAMENTO
-    if _ABAS_BASE_CLIENTES <= cabecalho:
-        return TipoArquivoImportacao.CLIENTES
-    return None
-
-
-def obter_ou_criar_usuario_sistema(session) -> Usuario:  # type: ignore[no-untyped-def]
-    """Usuário técnico para `usuario_id` enquanto não há autenticação (Sprint futura)."""
-
-    from sqlalchemy import select
-
-    usuario = session.scalar(select(Usuario).where(Usuario.email == "sistema@promotoresbi.local"))
-    if usuario is None:
-        usuario = Usuario(
-            nome="Sistema (carga CLI)",
-            email="sistema@promotoresbi.local",
-            senha_hash="!",  # login desabilitado; autenticação é sprint futura
-            perfil=PerfilUsuario.ADMINISTRADOR,
-        )
-        session.add(usuario)
-        session.commit()
-    return usuario
+__all__ = ["inferir_tipo_arquivo", "obter_ou_criar_usuario_sistema", "main"]
 
 
 def _competencia_de(texto: str) -> date | None:
