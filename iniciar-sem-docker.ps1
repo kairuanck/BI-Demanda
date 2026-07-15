@@ -63,10 +63,24 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue) -or -not (Get-Command 
 
 Info "Preparando o backend (pode levar alguns minutos na primeira vez)..."
 Set-Location (Join-Path $RootDir "backend")
+$venvPython = Join-Path $RootDir "backend\.venv\Scripts\python.exe"
+
+# Um .venv criado num caminho e depois movido/renomeado (comum quando a pasta
+# do projeto é extraída de novo ou renomeada manualmente) fica com caminhos
+# absolutos quebrados gravados nos executáveis (uvicorn.exe etc.) — o Python
+# em si ainda roda, mas os scripts instalados (uvicorn) falham silenciosamente.
+# Detecta isso e recria o ambiente do zero em vez de deixar o usuário preso
+# num erro sem explicação.
+if (Test-Path ".venv") {
+    & $venvPython --version *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Info "Ambiente Python existente parece quebrado (pasta foi movida/renomeada?). Recriando..."
+        Remove-Item -Recurse -Force ".venv"
+    }
+}
 if (-not (Test-Path ".venv")) {
     & $pythonCmd -m venv .venv
 }
-$venvPython = Join-Path $RootDir "backend\.venv\Scripts\python.exe"
 & $venvPython -m pip install --upgrade pip -q
 & $venvPython -m pip install -e ".[dev]" -q
 if (-not (Test-Path ".env")) { Copy-Item ".env.example" ".env" }
