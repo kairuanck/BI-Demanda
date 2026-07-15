@@ -108,6 +108,18 @@ if (-not $backendOk) {
 Set-Location (Join-Path $RootDir "frontend")
 Info "Preparando o frontend (pode levar alguns minutos na primeira vez)..."
 if (-not (Test-Path ".env")) { Copy-Item ".env.example" ".env" }
+
+# Instalações de Node.js via ".zip" portátil (comuns em máquinas sem admin,
+# ver PRIMEIRO_USO.md) mantêm a marca de "baixado da internet" nos wrappers
+# .ps1 (npm.ps1, npx.ps1) depois de extraídos — o PowerShell recusa executá-los
+# sem isso, mesmo com a política de execução liberada para o usuário atual.
+$npmCmd = Get-Command npm -ErrorAction SilentlyContinue
+if ($npmCmd) {
+    $nodeDir = Split-Path $npmCmd.Source -Parent
+    Get-ChildItem -Path $nodeDir -Filter "*.ps1" -ErrorAction SilentlyContinue |
+        Unblock-File -ErrorAction SilentlyContinue
+}
+
 if (-not (Test-Path "node_modules")) {
     npm install
 }
