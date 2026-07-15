@@ -90,7 +90,7 @@ $backendProc.Id | Out-File -FilePath (Join-Path $RunDir "backend.pid") -Encoding
 $backendOk = $false
 for ($i = 0; $i -lt 60; $i++) {
     try {
-        $resp = Invoke-WebRequest -Uri "http://localhost:8000/api/v1/health" -UseBasicParsing -TimeoutSec 2
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/v1/health" -UseBasicParsing -TimeoutSec 2
         if ($resp.StatusCode -eq 200) { $backendOk = $true; break }
     } catch {}
     Start-Sleep -Seconds 2
@@ -126,7 +126,7 @@ $frontendProc.Id | Out-File -FilePath (Join-Path $RunDir "frontend.pid") -Encodi
 $frontendOk = $false
 for ($i = 0; $i -lt 30; $i++) {
     try {
-        $resp = Invoke-WebRequest -Uri "http://localhost:5173" -UseBasicParsing -TimeoutSec 2
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:5173" -UseBasicParsing -TimeoutSec 2
         if ($resp.StatusCode -eq 200) { $frontendOk = $true; break }
     } catch {}
     Start-Sleep -Seconds 2
