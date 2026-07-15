@@ -129,7 +129,7 @@ $viteJs = Join-Path $RootDir "frontend\node_modules\vite\bin\vite.js"
 $frontendLog = Join-Path $RunDir "frontend.log"
 $frontendErr = Join-Path $RunDir "frontend-err.log"
 $frontendProc = Start-Process -FilePath "node" `
-    -ArgumentList @($viteJs, "--host", "0.0.0.0", "--port", "5173") `
+    -ArgumentList @("`"$viteJs`"", "--host", "0.0.0.0", "--port", "5173") `
     -WorkingDirectory (Join-Path $RootDir "frontend") `
     -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErr `
     -WindowStyle Hidden -PassThru
