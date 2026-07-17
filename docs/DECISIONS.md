@@ -440,3 +440,15 @@ Causa: no Windows, o `venv` do Python gera `uvicorn.exe` (e outros scripts insta
 **Correção**: antes de decidir se cria uma `.venv` nova, `iniciar-sem-docker.ps1` agora testa se a `.venv` existente ainda funciona (`& $venvPython --version`, verificando o código de saída) — se não funcionar, apaga a pasta `.venv` inteira e deixa o fluxo normal recriá-la do zero no caminho atual, sem exigir que o usuário diagnostique ou apague nada manualmente. Corrigido de forma preventiva (autocorretiva) em vez de só documentar "não renomeie a pasta depois de instalado", porque renomear pastas baixadas é um comportamento natural no Windows (Explorer já faz isso sozinho ao extrair um ZIP duplicado — seção 38) e não é razoável esperar que um usuário não técnico entenda essa restrição sem ser avisado.
 
 Sexto bug seguido nesta mesma sessão de validação com o usuário, todos em `iniciar-sem-docker.ps1`/ambiente Windows — reforça que este caminho de execução (o único sem Docker nem Git) é o que mais precisou de iteração real para amadurecer, exatamente como antecipado na seção 34.
+
+## 40. Bug de aplicação (não de script): `database is locked` ao consultar o Dashboard durante uma importação
+
+Diferente dos bugs 34-39 (todos nos scripts de inicialização), este apareceu no próprio backend: com o usuário importando um lote grande de arquivos (um atrás do outro, cada um levando alguns segundos) e tentando abrir o Dashboard ao mesmo tempo, o `backend-err.log` mostrou `sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked`, e a tela do Dashboard ficava carregando sem nunca terminar.
+
+Causa: `app/infrastructure/database.py` criava a engine SQLite sem dois ajustes importantes para uso concorrente:
+1. Sem `timeout` explícito no `connect_args`, o driver `sqlite3` usa o padrão do Python (5 segundos) esperando um lock liberar antes de desistir e lançar `OperationalError` — pouco tempo quando uma importação grande (milhares de linhas) segura o banco por mais que isso.
+2. No modo padrão do SQLite (*rollback journal*), uma transação de escrita bloqueia **toda** leitura concorrente até terminar — exatamente o padrão de uso real desta aplicação (importar enquanto alguém consulta o Dashboard), não um caso extremo.
+
+**Correção**: `connect_args["timeout"] = 30` (mais margem antes de desistir) e `PRAGMA journal_mode=WAL` habilitado na conexão SQLite — no modo WAL, leituras não esperam por escritas em andamento, resolvendo o problema pela raiz em vez de só aumentar o tempo de espera. Mudança isolada em `_criar_engine()`, sem afetar PostgreSQL (produção), onde este bloco nem é executado. Suíte de testes completa (129 testes) roda sem alteração — os testes já usam um arquivo SQLite real (não `:memory:`), então o WAL se aplica normalmente também lá.
+
+Diferente dos bugs anteriores desta sessão, este não é específico do Windows nem do caminho sem Docker — afetaria qualquer execução (Docker incluído) sob uso concorrente real, e só apareceu porque o usuário chegou a usar o sistema de verdade (importar + navegar ao mesmo tempo), não só validar que ele inicia.
